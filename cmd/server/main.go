@@ -39,7 +39,7 @@ func run() error {
 		gauge:   make(map[string]float64),
 		counter: make(map[string]int64),
 	}
-	mux.Handle("/update/", Conveyor(http.HandlerFunc(s.MetricsHandler), checkPost, checkContentType))
+	mux.Handle("/update/", Conveyor(http.HandlerFunc(s.MetricsHandler), checkPost))
 	return http.ListenAndServe(`:8080`, mux)
 }
 
@@ -53,16 +53,16 @@ func checkPost(next http.Handler) http.Handler {
 	})
 }
 
-func checkContentType(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		contentType := r.Header.Get("Content-Type")
-		if contentType != "text/plain" {
-			w.WriteHeader(http.StatusUnsupportedMediaType)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
+//func checkContentType(next http.Handler) http.Handler {
+//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//		contentType := r.Header.Get("Content-Type")
+//		if contentType != "text/plain" {
+//			w.WriteHeader(http.StatusUnsupportedMediaType)
+//			return
+//		}
+//		next.ServeHTTP(w, r)
+//	})
+//}
 
 func (storage *MemStorage) MetricsHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
@@ -71,7 +71,7 @@ func (storage *MemStorage) MetricsHandler(w http.ResponseWriter, r *http.Request
 	}
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) < 5 {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusNotFound)
 		//http.Error(w, "some field is empty", http.StatusBadRequest)
 		return
 	}
