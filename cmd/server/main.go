@@ -53,43 +53,25 @@ func checkPost(next http.Handler) http.Handler {
 	})
 }
 
-//func checkContentType(next http.Handler) http.Handler {
-//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		contentType := r.Header.Get("Content-Type")
-//		if contentType != "text/plain" {
-//			w.WriteHeader(http.StatusUnsupportedMediaType)
-//			return
-//		}
-//		next.ServeHTTP(w, r)
-//	})
-//}
-
 func (storage *MemStorage) MetricsHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
-		//w.WriteHeader(http.StatusBadRequest)
 		http.Error(w, "failed to parse form data", http.StatusBadRequest)
 	}
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) < 5 {
 		w.WriteHeader(http.StatusNotFound)
-		//http.Error(w, "some field is empty", http.StatusBadRequest)
 		return
 	}
 	metricType := pathParts[2]
 	metricName := pathParts[3]
 	metricValue := pathParts[4]
 
-	if metricName == "" {
-		http.Error(w, "metrics name is empty", http.StatusNotFound)
-		return
-	}
 	switch metricType {
 	case Gauge:
 		if convertedMetricValueFloat, err := strconv.ParseFloat(metricValue, 64); err == nil {
 			storage.gauge[metricName] = convertedMetricValueFloat
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
-			//http.Error(w, "wrong metrics value", http.StatusBadRequest)
 			return
 		}
 	case Counter:
@@ -101,12 +83,10 @@ func (storage *MemStorage) MetricsHandler(w http.ResponseWriter, r *http.Request
 			}
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
-			//http.Error(w, "wrong metrics value", http.StatusBadRequest)
 			return
 		}
 	default:
 		w.WriteHeader(http.StatusBadRequest)
-		//http.Error(w, "wrong metrics type", http.StatusBadRequest)
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain")
