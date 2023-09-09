@@ -76,7 +76,8 @@ func (storage *MemStorage) MetricsHandler(w http.ResponseWriter, r *http.Request
 		}
 	case Counter:
 		if convertedMetricValueInt, err := strconv.Atoi(metricValue); err == nil {
-			if _, ok := storage.counter[metricName]; ok {
+			_, ok := storage.counter[metricName]
+			if ok {
 				storage.counter[metricName] += int64(convertedMetricValueInt)
 			} else {
 				storage.counter[metricName] = int64(convertedMetricValueInt)
