@@ -46,7 +46,7 @@ func run() error {
 func checkPost(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != MethodPost {
-			http.Error(w, "wrong request's type", http.StatusMethodNotAllowed)
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -57,7 +57,7 @@ func checkContentType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		contentType := r.Header.Get("Content-Type")
 		if contentType != "text/plain" {
-			http.Error(w, "wrong content type", http.StatusUnsupportedMediaType)
+			w.WriteHeader(http.StatusUnsupportedMediaType)
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -66,11 +66,13 @@ func checkContentType(next http.Handler) http.Handler {
 
 func (storage *MemStorage) MetricsHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
+		//w.WriteHeader(http.StatusBadRequest)
 		http.Error(w, "failed to parse form data", http.StatusBadRequest)
 	}
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) < 5 {
-		http.Error(w, "some field is empty", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		//http.Error(w, "some field is empty", http.StatusBadRequest)
 		return
 	}
 	metricType := pathParts[2]
@@ -86,7 +88,8 @@ func (storage *MemStorage) MetricsHandler(w http.ResponseWriter, r *http.Request
 		if convertedMetricValueFloat, err := strconv.ParseFloat(metricValue, 64); err == nil {
 			storage.gauge[metricName] = convertedMetricValueFloat
 		} else {
-			http.Error(w, "wrong metrics value", http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest)
+			//http.Error(w, "wrong metrics value", http.StatusBadRequest)
 			return
 		}
 	case Counter:
@@ -97,12 +100,15 @@ func (storage *MemStorage) MetricsHandler(w http.ResponseWriter, r *http.Request
 				storage.counter[metricName] = int64(convertedMetricValueInt)
 			}
 		} else {
-			http.Error(w, "wrong metrics value", http.StatusBadRequest)
+			w.WriteHeader(http.StatusBadRequest)
+			//http.Error(w, "wrong metrics value", http.StatusBadRequest)
 			return
 		}
 	default:
-		http.Error(w, "wrong metrics type", http.StatusBadRequest)
+		w.WriteHeader(http.StatusBadRequest)
+		//http.Error(w, "wrong metrics type", http.StatusBadRequest)
 		return
 	}
+	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
 }
