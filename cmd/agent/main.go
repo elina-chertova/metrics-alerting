@@ -78,7 +78,7 @@ func Requests(s *MemStorage) {
 
 	for metricName, metricValue := range s.gauge {
 		wg.Add(1)
-		go func(string, any) {
+		go func(metricName string, metricValue any) {
 			defer wg.Done()
 			sendRequest(metricName, metricValue, "gauge")
 		}(metricName, metricValue)
@@ -86,7 +86,7 @@ func Requests(s *MemStorage) {
 
 	for metricName, metricValue := range s.counter {
 		wg.Add(1)
-		go func(string, any) {
+		go func(metricName string, metricValue any) {
 			defer wg.Done()
 			sendRequest(metricName, metricValue, "counter")
 		}(metricName, metricValue)
