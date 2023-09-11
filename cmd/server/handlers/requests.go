@@ -47,7 +47,7 @@ func GetMetricsHandler(st *storage.MemStorage) gin.HandlerFunc {
 			}
 			res = st.Gauge[metricName]
 		case storage.Counter:
-			_, ok := st.Gauge[metricName]
+			_, ok := st.Counter[metricName]
 			if !ok {
 				c.Status(http.StatusNotFound)
 				return
