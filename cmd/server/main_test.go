@@ -63,6 +63,7 @@ func TestMetricsHandler(t *testing.T) {
 
 			router.ServeHTTP(w, request)
 			result := w.Result()
+			defer result.Body.Close()
 			assert.Equal(t, tt.expected, result.StatusCode)
 		})
 	}
