@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/elina-chertova/metrics-alerting.git/cmd/server/handlers"
+	"github.com/elina-chertova/metrics-alerting.git/cmd/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -50,11 +52,11 @@ func TestMetricsHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			router := gin.Default()
-			storage := &MemStorage{
+			st := &storage.MemStorage{
 				Gauge:   make(map[string]float64),
 				Counter: make(map[string]int64),
 			}
-			router.POST("/update/:metricType/:metricName/:metricValue", MetricsHandler(storage))
+			router.POST("/update/:metricType/:metricName/:metricValue", handlers.MetricsHandler(st))
 
 			request := httptest.NewRequest(tt.method, tt.path, nil)
 			w := httptest.NewRecorder()

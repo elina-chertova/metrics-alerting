@@ -2,19 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/elina-chertova/metrics-alerting.git/cmd/storage"
+	"github.com/levigross/grequests"
 	"math/rand"
-	"net/http"
 	"runtime"
 	"sync"
 	"time"
 )
-
-type MemStorage struct {
-	gaugeMu   sync.RWMutex
-	gauge     map[string]float64
-	counterMu sync.RWMutex
-	counter   map[string]int64
-}
 
 const (
 	pollInterval   = 2 * time.Second
@@ -22,61 +16,60 @@ const (
 	url            = "http://localhost:8080/update"
 )
 
-func extractMetrics(s *MemStorage, m runtime.MemStats) {
+func extractMetrics(s *storage.MemStorage, m runtime.MemStats) {
 	runtime.ReadMemStats(&m)
-	s.gaugeMu.Lock()
+	s.GaugeMu.Lock()
 	generator := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	s.gauge["Alloc"] = float64(m.Alloc)
-	s.gauge["TotalAlloc"] = float64(m.TotalAlloc)
-	s.gauge["Sys"] = float64(m.Sys)
-	s.gauge["Lookups"] = float64(m.Lookups)
-	s.gauge["Mallocs"] = float64(m.Mallocs)
-	s.gauge["Frees"] = float64(m.Frees)
-	s.gauge["HeapAlloc"] = float64(m.HeapAlloc)
-	s.gauge["HeapSys"] = float64(m.HeapSys)
-	s.gauge["HeapIdle"] = float64(m.HeapIdle)
-	s.gauge["HeapInuse"] = float64(m.HeapInuse)
-	s.gauge["HeapReleased"] = float64(m.HeapReleased)
-	s.gauge["HeapObjects"] = float64(m.HeapObjects)
-	s.gauge["StackInuse"] = float64(m.StackInuse)
-	s.gauge["StackSys"] = float64(m.StackSys)
-	s.gauge["MSpanInuse"] = float64(m.MSpanInuse)
-	s.gauge["MSpanSys"] = float64(m.MSpanSys)
-	s.gauge["MCacheInuse"] = float64(m.MCacheInuse)
-	s.gauge["MCacheSys"] = float64(m.MCacheSys)
-	s.gauge["BuckHashSys"] = float64(m.BuckHashSys)
-	s.gauge["GCSys"] = float64(m.GCSys)
-	s.gauge["OtherSys"] = float64(m.OtherSys)
-	s.gauge["NextGC"] = float64(m.NextGC)
-	s.gauge["LastGC"] = float64(m.LastGC)
-	s.gauge["PauseTotalNs"] = float64(m.PauseTotalNs)
-	s.gauge["NumGC"] = float64(m.NumGC)
-	s.gauge["NumForcedGC"] = float64(m.NumForcedGC)
-	s.gauge["GCCPUFraction"] = float64(m.GCCPUFraction)
-	s.gauge["RandomValue"] = generator.Float64()
-	s.gaugeMu.Unlock()
+	s.Gauge["Alloc"] = float64(m.Alloc)
+	s.Gauge["TotalAlloc"] = float64(m.TotalAlloc)
+	s.Gauge["Sys"] = float64(m.Sys)
+	s.Gauge["Lookups"] = float64(m.Lookups)
+	s.Gauge["Mallocs"] = float64(m.Mallocs)
+	s.Gauge["Frees"] = float64(m.Frees)
+	s.Gauge["HeapAlloc"] = float64(m.HeapAlloc)
+	s.Gauge["HeapSys"] = float64(m.HeapSys)
+	s.Gauge["HeapIdle"] = float64(m.HeapIdle)
+	s.Gauge["HeapInuse"] = float64(m.HeapInuse)
+	s.Gauge["HeapReleased"] = float64(m.HeapReleased)
+	s.Gauge["HeapObjects"] = float64(m.HeapObjects)
+	s.Gauge["StackInuse"] = float64(m.StackInuse)
+	s.Gauge["StackSys"] = float64(m.StackSys)
+	s.Gauge["MSpanInuse"] = float64(m.MSpanInuse)
+	s.Gauge["MSpanSys"] = float64(m.MSpanSys)
+	s.Gauge["MCacheInuse"] = float64(m.MCacheInuse)
+	s.Gauge["MCacheSys"] = float64(m.MCacheSys)
+	s.Gauge["BuckHashSys"] = float64(m.BuckHashSys)
+	s.Gauge["GCSys"] = float64(m.GCSys)
+	s.Gauge["OtherSys"] = float64(m.OtherSys)
+	s.Gauge["NextGC"] = float64(m.NextGC)
+	s.Gauge["LastGC"] = float64(m.LastGC)
+	s.Gauge["PauseTotalNs"] = float64(m.PauseTotalNs)
+	s.Gauge["NumGC"] = float64(m.NumGC)
+	s.Gauge["NumForcedGC"] = float64(m.NumForcedGC)
+	s.Gauge["GCCPUFraction"] = float64(m.GCCPUFraction)
+	s.Gauge["RandomValue"] = generator.Float64()
+	s.GaugeMu.Unlock()
 
-	s.counterMu.Lock()
-	s.counter["PollCount"] += 1
-	s.counterMu.Unlock()
+	s.CounterMu.Lock()
+	s.Counter["PollCount"] += 1
+	s.CounterMu.Unlock()
 }
 
 func sendRequest(name string, value any, metricsType string) {
 	metricURL := fmt.Sprintf("%s/%s/%s/%v", url, metricsType, name, value)
-	body, err := http.Post(metricURL, "text/plain", nil)
+	_, err := grequests.Post(metricURL, nil)
 	if err != nil {
 		fmt.Println("Error creating HTTP request:", err)
 		return
 	}
-	defer body.Body.Close()
 }
 
-func Requests(s *MemStorage) {
+func Requests(s *storage.MemStorage) {
 
 	var wg sync.WaitGroup
 
-	for metricName, metricValue := range s.gauge {
+	for metricName, metricValue := range s.Gauge {
 		wg.Add(1)
 		go func(metricName string, metricValue any) {
 			defer wg.Done()
@@ -84,7 +77,7 @@ func Requests(s *MemStorage) {
 		}(metricName, metricValue)
 	}
 
-	for metricName, metricValue := range s.counter {
+	for metricName, metricValue := range s.Counter {
 		wg.Add(1)
 		go func(metricName string, metricValue any) {
 			defer wg.Done()
@@ -97,9 +90,9 @@ func Requests(s *MemStorage) {
 func main() {
 	var mem runtime.MemStats
 
-	storage := &MemStorage{
-		gauge:   make(map[string]float64),
-		counter: make(map[string]int64),
+	storage := &storage.MemStorage{
+		Gauge:   make(map[string]float64),
+		Counter: make(map[string]int64),
 	}
 	go func() {
 		for {
