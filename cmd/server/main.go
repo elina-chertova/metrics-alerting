@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const (
@@ -14,17 +15,19 @@ const (
 )
 
 type MemStorage struct {
-	gauge   map[string]float64
-	counter map[string]int64
+	gaugeMu   sync.Mutex
+	gauge     map[string]float64
+	counterMu sync.Mutex
+	counter   map[string]int64
 }
+
+type Middleware func(http.Handler) http.Handler
 
 func main() {
 	if err := run(); err != nil {
 		panic(err)
 	}
 }
-
-type Middleware func(http.Handler) http.Handler
 
 func Conveyor(h http.Handler, middlewares ...Middleware) http.Handler {
 	for _, middleware := range middlewares {
@@ -52,10 +55,10 @@ func checkPost(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
-
 func (storage *MemStorage) MetricsHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "failed to parse form data", http.StatusBadRequest)
+		return
 	}
 	pathParts := strings.Split(r.URL.Path, "/")
 	if len(pathParts) < 5 {
@@ -69,19 +72,23 @@ func (storage *MemStorage) MetricsHandler(w http.ResponseWriter, r *http.Request
 	switch metricType {
 	case Gauge:
 		if convertedMetricValueFloat, err := strconv.ParseFloat(metricValue, 64); err == nil {
+			storage.gaugeMu.Lock()
 			storage.gauge[metricName] = convertedMetricValueFloat
+			storage.gaugeMu.Unlock()
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 	case Counter:
 		if convertedMetricValueInt, err := strconv.Atoi(metricValue); err == nil {
+			storage.counterMu.Lock()
 			_, ok := storage.counter[metricName]
 			if ok {
 				storage.counter[metricName] += int64(convertedMetricValueInt)
 			} else {
 				storage.counter[metricName] = int64(convertedMetricValueInt)
 			}
+			storage.counterMu.Unlock()
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
 			return
