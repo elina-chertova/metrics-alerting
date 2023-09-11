@@ -65,11 +65,11 @@ func extractMetrics(s *MemStorage, m runtime.MemStats) {
 func sendRequest(name string, value any, metricsType string) {
 	metricURL := fmt.Sprintf("%s/%s/%s/%v", url, metricsType, name, value)
 	body, err := http.Post(metricURL, "text/plain", nil)
-	defer body.Body.Close()
 	if err != nil {
 		fmt.Println("Error creating HTTP request:", err)
 		return
 	}
+	defer body.Body.Close()
 }
 
 func Requests(s *MemStorage) {
