@@ -10,8 +10,10 @@ import (
 )
 
 type MemStorage struct {
-	gauge   map[string]float64
-	counter map[string]int64
+	gaugeMu   sync.RWMutex
+	gauge     map[string]float64
+	counterMu sync.RWMutex
+	counter   map[string]int64
 }
 
 const (
@@ -22,6 +24,7 @@ const (
 
 func extractMetrics(s *MemStorage, m runtime.MemStats) {
 	runtime.ReadMemStats(&m)
+	s.gaugeMu.Lock()
 	generator := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	s.gauge["Alloc"] = float64(m.Alloc)
@@ -51,14 +54,18 @@ func extractMetrics(s *MemStorage, m runtime.MemStats) {
 	s.gauge["NumGC"] = float64(m.NumGC)
 	s.gauge["NumForcedGC"] = float64(m.NumForcedGC)
 	s.gauge["GCCPUFraction"] = float64(m.GCCPUFraction)
-
-	s.counter["PollCount"] += 1
 	s.gauge["RandomValue"] = generator.Float64()
+	s.gaugeMu.Unlock()
+
+	s.counterMu.Lock()
+	s.counter["PollCount"] += 1
+	s.counterMu.Unlock()
 }
 
 func sendRequest(name string, value any, metricsType string) {
 	metricURL := fmt.Sprintf("%s/%s/%s/%v", url, metricsType, name, value)
-	_, err := http.Post(metricURL, "text/plain", nil)
+	body, err := http.Post(metricURL, "text/plain", nil)
+	defer body.Body.Close()
 	if err != nil {
 		fmt.Println("Error creating HTTP request:", err)
 		return
