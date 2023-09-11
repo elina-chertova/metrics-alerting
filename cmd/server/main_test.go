@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
@@ -45,53 +46,22 @@ func TestMetricsHandler(t *testing.T) {
 			expected: http.StatusNotFound,
 		},
 	}
-	storage := MemStorage{
-		gauge:   make(map[string]float64),
-		counter: make(map[string]int64),
-	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			router := gin.Default()
+			storage := &MemStorage{
+				Gauge:   make(map[string]float64),
+				Counter: make(map[string]int64),
+			}
+			router.POST("/update/:metricType/:metricName/:metricValue", MetricsHandler(storage))
+
 			request := httptest.NewRequest(tt.method, tt.path, nil)
 			w := httptest.NewRecorder()
-			h := http.HandlerFunc(storage.MetricsHandler)
-			h(w, request)
+
+			router.ServeHTTP(w, request)
 			result := w.Result()
-			defer result.Body.Close()
-			assert.Equal(t, result.StatusCode, tt.expected)
-		})
-	}
-}
-
-func Test_checkPost(t *testing.T) {
-	mockHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	handler := checkPost(mockHandler)
-
-	tests := []struct {
-		name     string
-		method   string
-		expected int
-	}{
-		{
-			name:     "Method Post",
-			method:   http.MethodPost,
-			expected: http.StatusOK,
-		},
-		{
-			name:     "Method Get",
-			method:   http.MethodGet,
-			expected: http.StatusMethodNotAllowed,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(tt.method, "http://localhost:8080/update/counter/metric2/10", nil)
-			rr := httptest.NewRecorder()
-			handler.ServeHTTP(rr, request)
-
-			assert.Equal(t, rr.Code, tt.expected)
+			assert.Equal(t, tt.expected, result.StatusCode)
 		})
 	}
 }
