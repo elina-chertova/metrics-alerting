@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -58,12 +56,7 @@ func TestMetricsHandler(t *testing.T) {
 			h := http.HandlerFunc(storage.MetricsHandler)
 			h(w, request)
 			result := w.Result()
-			defer func(Body io.ReadCloser) {
-				err := Body.Close()
-				if err != nil {
-					fmt.Println("Error body closing:", err)
-				}
-			}(result.Body)
+			defer result.Body.Close()
 			assert.Equal(t, result.StatusCode, tt.expected)
 		})
 	}
