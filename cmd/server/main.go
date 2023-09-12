@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/elina-chertova/metrics-alerting.git/cmd/server/flags"
 	"github.com/elina-chertova/metrics-alerting.git/cmd/server/handlers"
 	"github.com/elina-chertova/metrics-alerting.git/cmd/storage"
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,7 @@ func main() {
 }
 
 func run() error {
+	flags.ParseServerFlags()
 	router := gin.Default()
 	s := &storage.MemStorage{
 		Gauge:   make(map[string]float64),
@@ -25,5 +27,5 @@ func run() error {
 	router.NoRoute(func(c *gin.Context) {
 		c.String(http.StatusNotFound, "Page not found")
 	})
-	return router.Run("localhost:8080")
+	return router.Run(flags.FlagAddress)
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/elina-chertova/metrics-alerting.git/cmd/agent/flags"
 	"github.com/elina-chertova/metrics-alerting.git/cmd/storage"
 	"github.com/levigross/grequests"
 	"math/rand"
@@ -10,11 +11,7 @@ import (
 	"time"
 )
 
-const (
-	pollInterval   = 2 * time.Second
-	reportInterval = 10 * time.Second
-	url            = "http://localhost:8080/update"
-)
+var url_update = "http://" + flags.FlagAddress + "/update"
 
 func extractMetrics(s *storage.MemStorage, m runtime.MemStats) {
 	runtime.ReadMemStats(&m)
@@ -57,7 +54,7 @@ func extractMetrics(s *storage.MemStorage, m runtime.MemStats) {
 }
 
 func sendRequest(name string, value any, metricsType string) {
-	metricURL := fmt.Sprintf("%s/%s/%s/%v", url, metricsType, name, value)
+	metricURL := fmt.Sprintf("%s/%s/%s/%v", url_update, metricsType, name, value)
 	_, err := grequests.Post(metricURL, nil)
 	if err != nil {
 		fmt.Println("Error creating HTTP request:", err)
@@ -88,8 +85,9 @@ func Requests(s *storage.MemStorage) {
 }
 
 func main() {
+	flags.ParseAgentFlags()
+	fmt.Println("Running server on", flags.PollInterval)
 	var mem runtime.MemStats
-
 	storage := &storage.MemStorage{
 		Gauge:   make(map[string]float64),
 		Counter: make(map[string]int64),
@@ -97,12 +95,12 @@ func main() {
 	go func() {
 		for {
 			extractMetrics(storage, mem)
-			time.Sleep(pollInterval)
+			time.Sleep(flags.PollInterval)
 		}
 	}()
 	go func() {
 		for {
-			time.Sleep(reportInterval)
+			time.Sleep(flags.ReportInterval)
 			Requests(storage)
 		}
 	}()
