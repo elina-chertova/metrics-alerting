@@ -94,12 +94,12 @@ func main() {
 	go func() {
 		for {
 			extractMetrics(storage, mem)
-			time.Sleep(flags.PollInterval)
+			time.Sleep(time.Duration(flags.PollInterval) * time.Second)
 		}
 	}()
 	go func() {
 		for {
-			time.Sleep(flags.ReportInterval)
+			time.Sleep(time.Duration(flags.ReportInterval) * time.Second)
 			Requests(storage)
 		}
 	}()

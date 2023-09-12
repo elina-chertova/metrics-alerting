@@ -2,16 +2,15 @@ package flags
 
 import (
 	"flag"
-	"time"
 )
 
 var FlagAddress string
-var PollInterval time.Duration
-var ReportInterval time.Duration
+var PollInterval int64
+var ReportInterval int64
 
 func ParseAgentFlags() {
 	flag.StringVar(&FlagAddress, "a", "localhost:8080", "address and port to run server")
-	flag.DurationVar(&PollInterval, "p", 2*time.Second, "time in seconds to update metrics, example: 2s")
-	flag.DurationVar(&ReportInterval, "r", 10*time.Second, "time in seconds to send data to server, example: 10s")
+	flag.Int64Var(&PollInterval, "p", 2, "time in seconds to update metrics, example: 2")
+	flag.Int64Var(&ReportInterval, "r", 10, "time in seconds to send data to server, example: 10")
 	flag.Parse()
 }
