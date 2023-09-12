@@ -11,8 +11,6 @@ import (
 	"time"
 )
 
-var urlUpdate = "http://" + flags.FlagAddress + "/update"
-
 func extractMetrics(s *storage.MemStorage, m runtime.MemStats) {
 	runtime.ReadMemStats(&m)
 	s.GaugeMu.Lock()
@@ -54,6 +52,7 @@ func extractMetrics(s *storage.MemStorage, m runtime.MemStats) {
 }
 
 func sendRequest(name string, value any, metricsType string) {
+	urlUpdate := "http://" + flags.FlagAddress + "/update"
 	metricURL := fmt.Sprintf("%s/%s/%s/%v", urlUpdate, metricsType, name, value)
 	_, err := grequests.Post(metricURL, nil)
 	if err != nil {
