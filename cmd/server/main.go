@@ -21,11 +21,15 @@ func run() error {
 	router := gin.Default()
 	router.Use(logger.RequestLogger())
 	s := storage.NewMemStorage()
-	router.POST("/update/:metricType/:metricName/:metricValue", handlers.MetricsHandler(s))
-	router.GET("/value/:metricType/:metricName", handlers.GetMetricsHandler(s))
-	router.GET("/", handlers.MetricsListHandler(s))
-	router.NoRoute(func(c *gin.Context) {
-		c.String(http.StatusNotFound, "Page not found")
-	})
+	h := handlers.NewHandler(s)
+	router.POST("/update", h.MetricsJsonHandler())
+	router.POST("/update/:metricType/:metricName/:metricValue", h.MetricsTextPlainHandler())
+	router.GET("/value/:metricType/:metricName", h.GetMetricsHandler())
+	router.GET("/", h.MetricsListHandler())
+	router.NoRoute(
+		func(c *gin.Context) {
+			c.String(http.StatusNotFound, "Page not found")
+		},
+	)
 	return router.Run(serverConfig.FlagAddress)
 }

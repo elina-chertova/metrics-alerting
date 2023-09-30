@@ -20,7 +20,7 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(time.Duration(agentConfig.ReportInterval) * time.Second)
-			r.MetricsToServer(storage, urlUpdate)
+			r.MetricsToServer(storage, agentConfig.FlagContentType, urlUpdate)
 		}
 	}()
 
