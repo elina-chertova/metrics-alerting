@@ -10,4 +10,12 @@ test
 ./metricstest-darwin-arm64 -test.v -test.run=^TestIteration2A$ -source-path=. -agent-binary-path=cmd/agent/agent
     
 ./metricstest-darwin-arm64 -test.v -test.run=^TestIteration2B$ -source-path=. -agent-binary-path=cmd/agent/agent
+    
+    
+SERVER_PORT=90999 ADDRESS="localhost:${SERVER_PORT}" TEMP_FILE='temp'
+./metricstest-darwin-arm64 -test.v -test.run=^TestIteration7$ \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server \
+            -server-port=$SERVER_PORT \
+            -source-path=.
 ```
