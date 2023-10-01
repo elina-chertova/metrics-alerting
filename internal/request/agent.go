@@ -34,7 +34,7 @@ func compressData(data []byte) bytes.Buffer {
 	return compressedBuffer
 }
 
-func formJson(metricName string, value any, typeMetric string) f.Metric {
+func formJSON(metricName string, value any, typeMetric string) f.Metric {
 
 	var metrics f.Metric
 
@@ -83,7 +83,7 @@ func metricsToServerAppJSON(s *st.MemStorage, url string) error {
 		wg.Add(1)
 		go func(metricName string, metricValue float64) {
 			defer wg.Done()
-			metrics := formJson(metricName, metricValue, st.Gauge)
+			metrics := formJSON(metricName, metricValue, st.Gauge)
 			out, err := json.Marshal(metrics)
 			if err != nil {
 				fmt.Printf("error creating JSON: %v\n", err)
@@ -98,7 +98,7 @@ func metricsToServerAppJSON(s *st.MemStorage, url string) error {
 		wg.Add(1)
 		go func(metricName string, metricValue int64) {
 			defer wg.Done()
-			metrics := formJson(metricName, metricValue, st.Counter)
+			metrics := formJSON(metricName, metricValue, st.Counter)
 			out, err := json.Marshal(metrics)
 			if err != nil {
 				fmt.Printf("error creating JSON: %v\n", err)

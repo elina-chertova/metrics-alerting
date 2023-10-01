@@ -6,23 +6,13 @@ import (
 )
 
 func TestMetrics_MarshalJSON(t *testing.T) {
-	var v1 int64 = 10
+	//var v1 int64 = 10
 	var v2 = 20.5
-	metrics := Metrics{
-		metrics: []Metric{
-			{
-				ID:    "metric1",
-				MType: "type1",
-				Delta: nil,
-				Value: &v2,
-			},
-			{
-				ID:    "metric2",
-				MType: "type2",
-				Delta: &v1,
-				Value: nil,
-			},
-		},
+	metrics := Metric{
+		ID:    "metric1",
+		MType: "type1",
+		Delta: nil,
+		Value: &v2,
 	}
 
 	_, err := json.Marshal(metrics)
