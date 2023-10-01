@@ -34,34 +34,83 @@ func compressData(data []byte) bytes.Buffer {
 	return compressedBuffer
 }
 
+func formJson(metricName string, value any, typeMetric string) f.Metric {
+
+	var metrics f.Metric
+
+	switch typeMetric {
+	case st.Gauge:
+		var v float64
+		switch value := value.(type) {
+		case int64:
+			v = float64(value)
+		case float64:
+			v = value
+		default:
+			_ = fmt.Errorf("unsupported value type: %T", value)
+		}
+		metrics = f.Metric{
+			ID:    metricName,
+			MType: st.Gauge,
+			Value: &v,
+		}
+	case st.Counter:
+		var delta int64
+		switch value := value.(type) {
+		case int64:
+			delta = value
+		case float64:
+			delta = int64(value)
+		default:
+			_ = fmt.Errorf("unsupported value type: %T", value)
+		}
+		metrics = f.Metric{
+			ID:    metricName,
+			MType: st.Counter,
+			Delta: &delta,
+		}
+	default:
+		_ = fmt.Errorf("unsupported metric type: %s", typeMetric)
+	}
+
+	return metrics
+}
+
 func metricsToServerAppJSON(s *st.MemStorage, url string) error {
+	var wg sync.WaitGroup
 	isCompress := true
-	var metrics []f.Metric
-	for name, value := range s.Gauge {
-		val := value
-		metrics = append(
-			metrics, f.Metric{
-				ID:    name,
-				MType: st.Gauge,
-				Value: &val,
-			},
-		)
+	for metricName, metricValue := range s.Gauge {
+		wg.Add(1)
+		go func(metricName string, metricValue float64) {
+			defer wg.Done()
+			metrics := formJson(metricName, metricValue, st.Gauge)
+			out, err := json.Marshal(metrics)
+			if err != nil {
+				fmt.Printf("error creating JSON: %v\n", err)
+			}
+			if err := sendRequest(f.ContentTypeJSON, isCompress, url, out); err != nil {
+				fmt.Printf("Error sending request for %s: %v\n", metricName, err)
+			}
+		}(metricName, metricValue)
 	}
-	for name, value := range s.Counter {
-		val := value
-		metrics = append(
-			metrics, f.Metric{
-				ID:    name,
-				MType: st.Counter,
-				Delta: &val,
-			},
-		)
+
+	for metricName, metricValue := range s.Counter {
+		wg.Add(1)
+		go func(metricName string, metricValue int64) {
+			defer wg.Done()
+			metrics := formJson(metricName, metricValue, st.Counter)
+			out, err := json.Marshal(metrics)
+			if err != nil {
+				fmt.Printf("error creating JSON: %v\n", err)
+			}
+			if err := sendRequest(f.ContentTypeJSON, isCompress, url, out); err != nil {
+				fmt.Printf("Error sending request for %s: %v\n", metricName, err)
+			}
+		}(metricName, metricValue)
 	}
-	out, err := json.Marshal(metrics)
-	if err != nil {
-		return fmt.Errorf("error creating JSON: %v", err)
-	}
-	return sendRequest(f.ContentTypeJSON, isCompress, url, out)
+
+	wg.Wait()
+	return nil
 }
 
 func metricsToServerTextPlain(s *st.MemStorage, url string) error {
