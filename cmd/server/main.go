@@ -24,6 +24,7 @@ func run() error {
 	router.Use(compression.GzipHandle())
 	s := storage.NewMemStorage()
 	h := handlers.NewHandler(s)
+
 	router.POST("/update", h.MetricsJSONHandler())
 	router.POST("/update/:metricType/:metricName/:metricValue", h.MetricsTextPlainHandler())
 	router.GET("/value/:metricType/:metricName", h.GetMetricsTextPlainHandler())
