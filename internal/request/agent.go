@@ -57,7 +57,6 @@ func metricsToServerAppJSON(s *st.MemStorage, url string) error {
 			},
 		)
 	}
-	fmt.Println(metrics)
 	out, err := json.Marshal(metrics)
 	if err != nil {
 		return fmt.Errorf("error creating JSON: %v", err)
