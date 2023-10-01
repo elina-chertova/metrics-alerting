@@ -11,6 +11,8 @@ func main() {
 	agentConfig := config.NewAgent()
 	storage := st.NewMemStorage()
 	urlUpdate := "http://" + agentConfig.FlagAddress + "/update"
+	flagContentType := "application/json"
+	//agentConfig.FlagContentType
 	go func() {
 		for {
 			st.ExtractMetrics(storage)
@@ -20,7 +22,7 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(time.Duration(agentConfig.ReportInterval) * time.Second)
-			r.MetricsToServer(storage, agentConfig.FlagContentType, urlUpdate)
+			r.MetricsToServer(storage, flagContentType, urlUpdate)
 		}
 	}()
 

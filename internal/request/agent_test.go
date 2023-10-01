@@ -17,6 +17,6 @@ func TestSendRequest(t *testing.T) {
 	)
 	defer server.Close()
 
-	err := sendRequest("application/json", server.URL, nil)
+	err := sendRequest("application/json", false, server.URL, nil)
 	assert.NoError(t, err)
 }

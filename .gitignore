@@ -15,3 +15,5 @@
 # IDEs directories
 .idea
 .vscode
+/random-darwin-arm64
+/metricstest-darwin-arm64

@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"compress/gzip"
+	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 	"html/template"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type metricsStorage interface {
@@ -51,7 +54,41 @@ func (h *handler) MetricsListHandler() gin.HandlerFunc {
 	}
 }
 
-func (h *handler) GetMetricsHandler() gin.HandlerFunc {
+func (h *handler) GetMetricsJsonHandler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var metrics []f.Metric
+		for name, value := range h.memStorage.Gauge {
+			val := value
+			metrics = append(
+				metrics, f.Metric{
+					ID:    name,
+					MType: storage.Gauge,
+					Value: &val,
+				},
+			)
+		}
+		for name, value := range h.memStorage.Counter {
+			val := value
+			metrics = append(
+				metrics, f.Metric{
+					ID:    name,
+					MType: storage.Counter,
+					Delta: &val,
+				},
+			)
+		}
+		out, err := json.Marshal(metrics)
+		if err != nil {
+			c.Status(http.StatusBadRequest)
+			return
+		}
+
+		c.Writer.WriteHeader(http.StatusOK)
+		c.Writer.Write(out)
+	}
+}
+
+func (h *handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var value any
 		metricType := c.Param("metricType")
@@ -100,13 +137,31 @@ func (h *handler) MetricsJsonHandler() gin.HandlerFunc {
 			c.Status(http.StatusBadRequest)
 			return
 		}
-		if err := c.ShouldBindJSON(&m); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
+
+		if strings.Contains(
+			c.Request.Header.Get("Content-Encoding"),
+			"gzip",
+		) {
+			gz, err := gzip.NewReader(c.Request.Body)
+			if err != nil {
+				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if err := json.NewDecoder(gz).Decode(&m); err != nil {
+				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			if err := c.ShouldBindJSON(&m); err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			_ = json.NewDecoder(c.Request.Body).Decode(&m)
+
 		}
-		_ = json.NewDecoder(c.Request.Body).Decode(&m)
 
 		for _, metric := range m {
+
 			switch metric.MType {
 			case storage.Counter:
 				_, ok := h.memStorage.GetCounter(metric.ID)
@@ -165,38 +220,3 @@ func (h *handler) MetricsTextPlainHandler() gin.HandlerFunc {
 		c.Status(http.StatusOK)
 	}
 }
-
-//{
-//	"Type": "gauge"/"counter", "Name": "...", "Value": ""
-//}
-
-//func (h *handler) contentTextPlain(c *gin.Context) {
-//	metricType := c.Param("metricType")
-//	metricName := c.Param("metricName")
-//	metricValue := c.Param("metricValue")
-//	if metricName == "" {
-//		c.Status(http.StatusNotFound)
-//		return
-//	}
-//	switch metricType {
-//	case storage.Gauge:
-//		if convertedMetricValueFloat, err := strconv.ParseFloat(metricValue, 64); err == nil {
-//			h.memStorage.UpdateGauge(metricName, convertedMetricValueFloat)
-//		} else {
-//			c.Status(http.StatusBadRequest)
-//			return
-//		}
-//	case storage.Counter:
-//		if convertedMetricValueInt, err := strconv.Atoi(metricValue); err == nil {
-//			_, ok := h.memStorage.GetCounter(metricName)
-//			h.memStorage.UpdateCounter(metricName, int64(convertedMetricValueInt), ok)
-//		} else {
-//			c.Status(http.StatusBadRequest)
-//			return
-//		}
-//	default:
-//		c.Status(http.StatusBadRequest)
-//		return
-//	}
-//	c.Header("Content-Type", "text/plain")
-//}

@@ -1,77 +1,46 @@
 package request
 
 import (
+	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	st "github.com/elina-chertova/metrics-alerting.git/internal/storage"
 	"github.com/levigross/grequests"
 	"sync"
 )
 
-const (
-	ContentTypeJSON      = "application/json"
-	ContentTypeTextPlain = "text/plain"
-)
-
-type Metric struct {
-	ID    string   `json:"id"`
-	MType string   `json:"type"`
-	Delta *int64   `json:"delta,omitempty"`
-	Value *float64 `json:"value,omitempty"`
-}
-
 func MetricsToServer(s *st.MemStorage, contentType string, url string) error {
 	switch contentType {
-	case ContentTypeTextPlain:
+	case f.ContentTypeTextPlain:
 		return metricsToServerTextPlain(s, url)
-	case ContentTypeJSON:
+	case f.ContentTypeJSON:
 		return metricsToServerAppJSON(s, url)
 	default:
 		return fmt.Errorf("error creating HTTP request, wrong Content-Type: %s", contentType)
 	}
 }
 
-func (m Metrics) MarshalJSON() ([]byte, error) {
-	type MetricAlias Metric
-	var jsonData []interface{}
-	for _, metric := range m.metrics {
-		if metric.Delta == nil {
-			aliasValue := struct {
-				MetricAlias
-				Value float64 `json:"value"`
-			}{
-				MetricAlias: MetricAlias(metric),
-				Value:       *metric.Value,
-			}
-			jsonData = append(jsonData, aliasValue)
-		} else if metric.Value == nil {
-			aliasValue := struct {
-				MetricAlias
-				Delta int64 `json:"delta"`
-			}{
-				MetricAlias: MetricAlias(metric),
-				Delta:       *metric.Delta,
-			}
-			jsonData = append(jsonData, aliasValue)
-		}
+func compressData(data []byte) bytes.Buffer {
+	var compressedBuffer bytes.Buffer
+	gzipWriter := gzip.NewWriter(&compressedBuffer)
+
+	_, err := gzipWriter.Write(data)
+	if err != nil {
+		fmt.Errorf("error compressing data: %v", err)
 	}
-	return json.Marshal(jsonData)
-}
-
-type Marshaler interface {
-	MarshalJSON() ([]byte, error)
-}
-
-type Metrics struct {
-	metrics []Metric
+	gzipWriter.Close()
+	return compressedBuffer
 }
 
 func metricsToServerAppJSON(s *st.MemStorage, url string) error {
-	var metrics []Metric
+	isCompress := true
+	var metrics []f.Metric
 	for name, value := range s.Gauge {
 		val := value
 		metrics = append(
-			metrics, Metric{
+			metrics, f.Metric{
 				ID:    name,
 				MType: st.Gauge,
 				Value: &val,
@@ -81,29 +50,30 @@ func metricsToServerAppJSON(s *st.MemStorage, url string) error {
 	for name, value := range s.Counter {
 		val := value
 		metrics = append(
-			metrics, Metric{
+			metrics, f.Metric{
 				ID:    name,
 				MType: st.Counter,
 				Delta: &val,
 			},
 		)
 	}
+	fmt.Println(metrics)
 	out, err := json.Marshal(metrics)
-
 	if err != nil {
 		return fmt.Errorf("error creating JSON: %v", err)
 	}
-	return sendRequest(ContentTypeJSON, url, out)
+	return sendRequest(f.ContentTypeJSON, isCompress, url, out)
 }
 
 func metricsToServerTextPlain(s *st.MemStorage, url string) error {
 	var wg sync.WaitGroup
+	isCompress := false
 	for metricName, metricValue := range s.Gauge {
 		wg.Add(1)
 		go func(metricName string, metricValue float64) {
 			defer wg.Done()
 			metricURL := fmt.Sprintf("%s/gauge/%s/%v", url, metricName, metricValue)
-			if err := sendRequest(ContentTypeTextPlain, metricURL, nil); err != nil {
+			if err := sendRequest(f.ContentTypeTextPlain, isCompress, metricURL, nil); err != nil {
 				fmt.Printf("Error sending request for %s: %v\n", metricName, err)
 			}
 		}(metricName, metricValue)
@@ -114,7 +84,7 @@ func metricsToServerTextPlain(s *st.MemStorage, url string) error {
 		go func(metricName string, metricValue int64) {
 			defer wg.Done()
 			metricURL := fmt.Sprintf("%s/counter/%s/%v", url, metricName, metricValue)
-			if err := sendRequest(ContentTypeTextPlain, metricURL, nil); err != nil {
+			if err := sendRequest(f.ContentTypeTextPlain, isCompress, metricURL, nil); err != nil {
 				fmt.Printf("Error sending request for %s: %v\n", metricName, err)
 			}
 		}(metricName, metricValue)
@@ -124,10 +94,22 @@ func metricsToServerTextPlain(s *st.MemStorage, url string) error {
 	return nil
 }
 
-func sendRequest(contentType string, url string, jsonBody []byte) error {
-	ro := &grequests.RequestOptions{
-		Headers: map[string]string{"Content-Type": contentType},
-		JSON:    jsonBody,
+func sendRequest(contentType string, isCompress bool, url string, jsonBody []byte) error {
+	var ro *grequests.RequestOptions
+	if isCompress {
+		compressedData := compressData(jsonBody)
+		ro = &grequests.RequestOptions{
+			Headers: map[string]string{
+				"Content-Type":     contentType,
+				"Content-Encoding": "gzip",
+			},
+			RequestBody: &compressedData,
+		}
+	} else {
+		ro = &grequests.RequestOptions{
+			Headers: map[string]string{"Content-Type": contentType},
+			JSON:    jsonBody,
+		}
 	}
 
 	resp, err := grequests.Post(url, ro)
