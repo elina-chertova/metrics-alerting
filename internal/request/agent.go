@@ -28,7 +28,7 @@ func compressData(data []byte) bytes.Buffer {
 
 	_, err := gzipWriter.Write(data)
 	if err != nil {
-		fmt.Errorf("error compressing data: %v", err)
+		_ = fmt.Errorf("error compressing data: %v", err)
 	}
 	gzipWriter.Close()
 	return compressedBuffer

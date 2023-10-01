@@ -54,7 +54,7 @@ func (h *handler) MetricsListHandler() gin.HandlerFunc {
 	}
 }
 
-func (h *handler) GetMetricsJsonHandler() gin.HandlerFunc {
+func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var metrics []f.Metric
 		for name, value := range h.memStorage.Gauge {
@@ -130,7 +130,7 @@ type ResMetric struct {
 	Value float64 `json:"value,omitempty"`
 }
 
-func (h *handler) MetricsJsonHandler() gin.HandlerFunc {
+func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m []ResMetric
 		if err := c.Request.ParseForm(); err != nil {
