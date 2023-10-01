@@ -69,7 +69,7 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 			if ok {
 				metric = ResMetric{
 					ID:    m.ID,
-					MType: storage.Gauge,
+					MType: storage.Counter,
 					Delta: val,
 				}
 			}
