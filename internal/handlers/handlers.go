@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"compress/gzip"
+	"fmt"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
 	"github.com/gin-gonic/gin"
@@ -134,6 +135,7 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m []ResMetric
 		if err := c.Request.ParseForm(); err != nil {
+			fmt.Println("here1")
 			c.Status(http.StatusBadRequest)
 			return
 		}
@@ -142,6 +144,7 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 			c.Request.Header.Get("Content-Encoding"),
 			"gzip",
 		) {
+			fmt.Println("here2")
 			gz, err := gzip.NewReader(c.Request.Body)
 			if err != nil {
 				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
@@ -152,7 +155,9 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 				return
 			}
 		} else {
+			fmt.Println("here3")
 			if err := c.ShouldBindJSON(&m); err != nil {
+				fmt.Println("here4")
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
@@ -161,7 +166,7 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 		}
 
 		for _, metric := range m {
-
+			fmt.Println("here5")
 			switch metric.MType {
 			case storage.Counter:
 				_, ok := h.memStorage.GetCounter(metric.ID)
