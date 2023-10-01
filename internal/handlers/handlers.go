@@ -64,7 +64,7 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 		}
 		err := json.NewDecoder(c.Request.Body).Decode(&m)
 		if err != nil {
-			fmt.Println("Errorjsonfile 2", err, c.Request.RequestURI)
+			fmt.Println("Errorjsonfile 2", err, c.Request.RequestURI, m, c.Request.Body)
 		}
 		var metric f.Metric
 		var val1 int64
