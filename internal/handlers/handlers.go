@@ -62,8 +62,10 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		_ = json.NewDecoder(c.Request.Body).Decode(&m)
-
+		err := json.NewDecoder(c.Request.Body).Decode(&m)
+		if err != nil {
+			fmt.Println("Errorjsonfile 2", err, c.Request.RequestURI)
+		}
 		var metric f.Metric
 		var val1 int64
 		var val2 float64
@@ -80,9 +82,12 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 			return
 		}
 		out, err := json.Marshal(metric)
-		fmt.Println(string(out))
+		fmt.Println(string(out), c.Request.RequestURI)
 		if err != nil {
+			fmt.Println(err, c.Request.RequestURI)
+
 			c.String(http.StatusInternalServerError, "Failed json creating")
+
 		}
 		c.Writer.WriteHeader(http.StatusOK)
 		c.Writer.Header().Set("Content-Type", "application/json")
@@ -116,6 +121,8 @@ func (h *handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 
 		resp, err := json.Marshal(value)
 		if err != nil {
+			fmt.Println("Errorjsonfile 1", err, c.Request.RequestURI)
+
 			c.Status(http.StatusBadRequest)
 			return
 		}
@@ -150,6 +157,7 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 				return
 			}
 			if err := json.NewDecoder(gz).Decode(&m); err != nil {
+
 				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -158,10 +166,14 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
-			_ = json.NewDecoder(c.Request.Body).Decode(&m)
+			err := json.NewDecoder(c.Request.Body).Decode(&m)
+			if err != nil {
+				fmt.Println("Errorjsonfile 5", err, c.Request.RequestURI)
+			}
+			fmt.Println("m = ", m, c.Request.RequestURI)
 			c.Writer.Header().Set("Content-Type", "application/json")
 		}
-		fmt.Println("m = ", m)
+		fmt.Println("m = ", m, c.Request.RequestURI)
 		switch m.MType {
 		case storage.Counter:
 			_, ok := h.memStorage.GetCounter(m.ID)
