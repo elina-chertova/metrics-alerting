@@ -168,7 +168,7 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 			}
 			err := json.NewDecoder(c.Request.Body).Decode(&m)
 			if err != nil {
-				fmt.Println("Errorjsonfile 5", err, c.Request.RequestURI)
+				fmt.Println("Errorjsonfile 5", err, c.Request.RequestURI, m, c.Request.Body)
 			}
 			fmt.Println("m = ", m, c.Request.RequestURI)
 			c.Writer.Header().Set("Content-Type", "application/json")
