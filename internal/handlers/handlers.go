@@ -65,23 +65,24 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 		_ = json.NewDecoder(c.Request.Body).Decode(&m)
 		switch m.MType {
 		case storage.Counter:
-			val, ok := h.memStorage.GetCounter(m.ID)
-			if ok {
-				metric = ResMetric{
-					ID:    m.ID,
-					MType: storage.Counter,
-					Delta: val,
-				}
+			val, _ := h.memStorage.GetCounter(m.ID)
+			//if ok {
+			metric = ResMetric{
+				ID:    m.ID,
+				MType: storage.Counter,
+				Delta: val,
+				//}
 			}
 		case storage.Gauge:
-			val, ok := h.memStorage.GetGauge(m.ID)
-			if ok {
-				metric = ResMetric{
-					ID:    m.ID,
-					MType: storage.Gauge,
-					Value: val,
-				}
+			val, _ := h.memStorage.GetGauge(m.ID)
+			//if ok {
+			metric = ResMetric{
+				ID:    m.ID,
+				MType: storage.Gauge,
+				Value: val,
 			}
+
+			//}
 		default:
 			c.Status(http.StatusBadRequest)
 			return
