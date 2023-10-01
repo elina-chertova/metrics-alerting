@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"compress/gzip"
+	"fmt"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
 	"github.com/gin-gonic/gin"
@@ -66,6 +67,7 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 		var metric f.Metric
 		var val1 int64
 		var val2 float64
+
 		switch m.MType {
 		case storage.Counter:
 			val1, _ = h.memStorage.GetCounter(m.ID)
@@ -78,6 +80,7 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 			return
 		}
 		out, err := json.Marshal(metric)
+		fmt.Println(string(out))
 		if err != nil {
 			c.String(http.StatusInternalServerError, "Failed json creating")
 		}
@@ -158,7 +161,7 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 			_ = json.NewDecoder(c.Request.Body).Decode(&m)
 			c.Writer.Header().Set("Content-Type", "application/json")
 		}
-
+		fmt.Println("m = ", m)
 		switch m.MType {
 		case storage.Counter:
 			_, ok := h.memStorage.GetCounter(m.ID)
