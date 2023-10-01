@@ -64,7 +64,21 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 		}
 		err := json.NewDecoder(c.Request.Body).Decode(&m)
 		if err != nil {
-			fmt.Println("Errorjsonfile 2", err, c.Request.RequestURI, m, c.Request.Body)
+			fmt.Println(
+				"Errorjsonfile 2",
+				err,
+				c.Request.RequestURI,
+				m,
+				m.ID,
+				m.Delta,
+				m.Value,
+				m.MType,
+			)
+			c.Writer.Header().Set("Content-Type", "application/json")
+			//return
+		} else {
+			fmt.Println("ok", err, c.Request.RequestURI, m, c.Request.Body)
+			c.Writer.Header().Set("Content-Type", "application/json")
 		}
 		var metric f.Metric
 		var val1 int64
@@ -168,7 +182,16 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 			}
 			err := json.NewDecoder(c.Request.Body).Decode(&m)
 			if err != nil {
-				fmt.Println("Errorjsonfile 5", err, c.Request.RequestURI, m, c.Request.Body)
+				fmt.Println(
+					"Errorjsonfile 5",
+					err,
+					c.Request.RequestURI,
+					m,
+					c.Request.Body,
+					*m.Delta,
+				)
+				c.Writer.Header().Set("Content-Type", "application/json")
+				//return
 			}
 			fmt.Println("m = ", m, c.Request.RequestURI)
 			c.Writer.Header().Set("Content-Type", "application/json")
