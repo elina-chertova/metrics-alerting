@@ -85,6 +85,7 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 		}
 
 		c.Writer.WriteHeader(http.StatusOK)
+		c.Writer.Header().Set("Content-Type", "application/json")
 		c.Writer.Write(out)
 	}
 }
@@ -155,14 +156,13 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 				return
 			}
 		} else {
-			fmt.Println("here3")
 			if err := c.ShouldBindJSON(&m); err != nil {
 				fmt.Println("here4")
 				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 				return
 			}
 			_ = json.NewDecoder(c.Request.Body).Decode(&m)
-
+			c.Writer.Header().Set("Content-Type", "application/json")
 		}
 
 		for _, metric := range m {
