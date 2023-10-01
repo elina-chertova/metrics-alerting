@@ -57,37 +57,26 @@ func (h *handler) MetricsListHandler() gin.HandlerFunc {
 func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m f.Metric
-		var metric ResMetric
 		if err := c.ShouldBindJSON(&m); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 		_ = json.NewDecoder(c.Request.Body).Decode(&m)
+
+		var metric f.Metric
+		var val1 int64
+		var val2 float64
 		switch m.MType {
 		case storage.Counter:
-			val, _ := h.memStorage.GetCounter(m.ID)
-			//if ok {
-			metric = ResMetric{
-				ID:    m.ID,
-				MType: storage.Counter,
-				Delta: val,
-				//}
-			}
+			val1, _ = h.memStorage.GetCounter(m.ID)
+			metric = f.Metric{ID: m.ID, MType: storage.Counter, Delta: &val1}
 		case storage.Gauge:
-			val, _ := h.memStorage.GetGauge(m.ID)
-			//if ok {
-			metric = ResMetric{
-				ID:    m.ID,
-				MType: storage.Gauge,
-				Value: val,
-			}
-
-			//}
+			val2, _ = h.memStorage.GetGauge(m.ID)
+			metric = f.Metric{ID: m.ID, MType: storage.Gauge, Value: &val2}
 		default:
-			c.Status(http.StatusBadRequest)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported metric type"})
 			return
 		}
-
 		out, err := json.Marshal(metric)
 		if err != nil {
 			c.String(http.StatusInternalServerError, "Failed json creating")
@@ -142,7 +131,7 @@ type ResMetric struct {
 
 func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var m ResMetric
+		var m f.Metric
 		if err := c.Request.ParseForm(); err != nil {
 			c.Status(http.StatusBadRequest)
 			return
@@ -173,9 +162,9 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 		switch m.MType {
 		case storage.Counter:
 			_, ok := h.memStorage.GetCounter(m.ID)
-			h.memStorage.UpdateCounter(m.ID, m.Delta, ok)
+			h.memStorage.UpdateCounter(m.ID, *m.Delta, ok)
 		case storage.Gauge:
-			h.memStorage.UpdateGauge(m.ID, m.Value)
+			h.memStorage.UpdateGauge(m.ID, *m.Value)
 		default:
 			c.Status(http.StatusBadRequest)
 			return
