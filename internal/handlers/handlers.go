@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"compress/gzip"
 	"fmt"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
@@ -10,7 +9,6 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 type metricsStorage interface {
@@ -62,24 +60,24 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		err := json.NewDecoder(c.Request.Body).Decode(&m)
-		if err != nil {
-			fmt.Println(
-				"Errorjsonfile 2",
-				err,
-				c.Request.RequestURI,
-				m,
-				m.ID,
-				m.Delta,
-				m.Value,
-				m.MType,
-			)
-			c.Writer.Header().Set("Content-Type", "application/json")
-			//return
-		} else {
-			fmt.Println("ok", err, c.Request.RequestURI, m, c.Request.Body)
-			c.Writer.Header().Set("Content-Type", "application/json")
-		}
+		//err := json.NewDecoder(c.Request.Body).Decode(&m)
+		//if err != nil {
+		//	fmt.Println(
+		//		"Errorjsonfile 2",
+		//		err,
+		//		c.Request.RequestURI,
+		//		m,
+		//		m.ID,
+		//		m.Delta,
+		//		m.Value,
+		//		m.MType,
+		//	)
+		//	c.Writer.Header().Set("Content-Type", "application/json")
+		//	//return
+		//} else {
+		//	fmt.Println("ok", err, c.Request.RequestURI, m, c.Request.Body)
+		//	c.Writer.Header().Set("Content-Type", "application/json")
+		//}
 		var metric f.Metric
 		var val1 int64
 		var val2 float64
@@ -161,45 +159,46 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 			return
 		}
 
-		if strings.Contains(
-			c.Request.Header.Get("Content-Encoding"),
-			"gzip",
-		) {
-			gz, err := gzip.NewReader(c.Request.Body)
-			if err != nil {
-				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			if err := json.NewDecoder(gz).Decode(&m); err != nil {
-
-				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		} else {
-			if err := c.ShouldBindJSON(&m); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-				return
-			}
-			err := json.NewDecoder(c.Request.Body).Decode(&m)
-			if err != nil {
-				fmt.Println(
-					"Errorjsonfile 5",
-					err,
-					c.Request.RequestURI,
-					m,
-					c.Request.Body,
-					*m.Delta,
-				)
-				c.Writer.Header().Set("Content-Type", "application/json")
-				//return
-			}
-			fmt.Println("m = ", m, c.Request.RequestURI)
-			c.Writer.Header().Set("Content-Type", "application/json")
+		//if strings.Contains(
+		//	c.Request.Header.Get("Content-Encoding"),
+		//	"gzip",
+		//) {
+		//	gz, err := gzip.NewReader(c.Request.Body)
+		//	if err != nil {
+		//		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		//		return
+		//	}
+		//	if err := json.NewDecoder(gz).Decode(&m); err != nil {
+		//
+		//		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		//		return
+		//	}
+		//} else {
+		if err := c.ShouldBindJSON(&m); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
+		err := json.NewDecoder(c.Request.Body).Decode(&m)
+		if err != nil {
+			fmt.Println(
+				"Errorjsonfile 5",
+				err,
+				c.Request.RequestURI,
+				m,
+				c.Request.Body,
+				*m.Delta,
+			)
+			//c.Writer.Header().Set("Content-Type", "application/json")
+			//return
+		}
+		fmt.Println("m = ", m, c.Request.RequestURI)
+		//c.Writer.Header().Set("Content-Type", "application/json")
+		//}
 		fmt.Println("m = ", m, c.Request.RequestURI)
 		switch m.MType {
 		case storage.Counter:
 			_, ok := h.memStorage.GetCounter(m.ID)
+			fmt.Println("result metric =", ok, m.ID, *m.Delta)
 			h.memStorage.UpdateCounter(m.ID, *m.Delta, ok)
 		case storage.Gauge:
 			h.memStorage.UpdateGauge(m.ID, *m.Value)
