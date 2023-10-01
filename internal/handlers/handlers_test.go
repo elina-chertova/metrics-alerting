@@ -49,21 +49,24 @@ func TestMetricsHandler(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			router := gin.Default()
-			st := &storage.MemStorage{
-				Gauge:   make(map[string]float64),
-				Counter: make(map[string]int64),
-			}
-			router.POST("/update/:metricType/:metricName/:metricValue", MetricsHandler(st))
+		t.Run(
+			tt.name, func(t *testing.T) {
+				router := gin.Default()
+				st := storage.NewMemStorage()
+				h := NewHandler(st)
+				router.POST(
+					"/update/:metricType/:metricName/:metricValue",
+					h.MetricsTextPlainHandler(),
+				)
 
-			request := httptest.NewRequest(tt.method, tt.path, nil)
-			w := httptest.NewRecorder()
+				request := httptest.NewRequest(tt.method, tt.path, nil)
+				w := httptest.NewRecorder()
 
-			router.ServeHTTP(w, request)
-			result := w.Result()
-			defer result.Body.Close()
-			assert.Equal(t, tt.expected, result.StatusCode)
-		})
+				router.ServeHTTP(w, request)
+				result := w.Result()
+				defer result.Body.Close()
+				assert.Equal(t, tt.expected, result.StatusCode)
+			},
+		)
 	}
 }
