@@ -137,54 +137,48 @@ type ResMetric struct {
 func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m f.Metric
-		fmt.Println("here")
-		if err := c.Request.ParseForm(); err != nil {
-			fmt.Println("here 1")
-			c.Status(http.StatusBadRequest)
-			return
-		}
-		fmt.Println("here 2")
+		fmt.Println("Handling JSON request")
 
-		//if strings.Contains(
-		//	c.Request.Header.Get("Content-Encoding"),
-		//	"gzip",
-		//) {
-		//	gz, err := gzip.NewReader(c.Request.Body)
-		//	if err != nil {
-		//		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-		//		return
-		//	}
-		//	if err := json.NewDecoder(gz).Decode(&m); err != nil {
-		//
-		//		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-		//		return
-		//	}
-		//} else {
+		// Attempt to parse the incoming JSON data
 		if err := c.ShouldBindJSON(&m); err != nil {
-			fmt.Println("Error while decoding JSON:", err, m)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON input"})
+			fmt.Println("Error parsing JSON:", err)
+
+			// Log the error and return a JSON response indicating the error
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		//
-		//fmt.Println("m = ", m, c.Request.RequestURI)
+
+		fmt.Println("Parsed JSON data:", m)
+
+		// Now, you can continue processing the parsed JSON data
 		switch m.MType {
 		case storage.Counter:
 			if m.Delta == nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Delta field is required for Counter"})
+				fmt.Println("Delta is nil, skipping update")
 				return
 			}
 			_, ok := h.memStorage.GetCounter(m.ID)
-			//fmt.Println("result metric counter =", m.ID, *m.Value)
-			h.memStorage.UpdateCounter(m.ID, *m.Delta, ok)
+
+			fmt.Println("result metric counter =", ok, m.ID, *m.Delta)
+			var v1 = *m.Delta
+			h.memStorage.UpdateCounter(m.ID, v1, ok)
+
+			rrr, _ := h.memStorage.GetCounter(m.ID)
+			fmt.Println("result metric counter 2 =", ok, m.ID, rrr)
 		case storage.Gauge:
 			if m.Value == nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "Value field is required for Gauge"})
+				fmt.Println("Value is nil, skipping update")
 				return
 			}
-			fmt.Println("result metric gauge =", m.ID, *m.Value)
-			h.memStorage.UpdateGauge(m.ID, *m.Value)
+			var v2 = *m.Value
+			fmt.Println("result metric gauge =", m.ID, v2)
+			h.memStorage.UpdateGauge(m.ID, v2)
+
+			kkk, _ := h.memStorage.GetGauge(m.ID)
+			fmt.Println("result metric gauge 2 =", m.ID, *m.Value, kkk)
 		default:
-			c.Status(http.StatusBadRequest)
+			fmt.Println("Unsupported metric type:", m.MType)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported metric type"})
 			return
 		}
 
@@ -192,6 +186,66 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 		c.Status(http.StatusOK)
 	}
 }
+
+//
+//func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
+//	return func(c *gin.Context) {
+//		var m f.Metric
+//		fmt.Println("here")
+//		if err := c.Request.ParseForm(); err != nil {
+//			fmt.Println("here 1")
+//			c.Status(http.StatusBadRequest)
+//			return
+//		}
+//		fmt.Println("here 2")
+//
+//		//if strings.Contains(
+//		//	c.Request.Header.Get("Content-Encoding"),
+//		//	"gzip",
+//		//) {
+//		//	gz, err := gzip.NewReader(c.Request.Body)
+//		//	if err != nil {
+//		//		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+//		//		return
+//		//	}
+//		//	if err := json.NewDecoder(gz).Decode(&m); err != nil {
+//		//
+//		//		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+//		//		return
+//		//	}
+//		//} else {
+//		if err := c.ShouldBindJSON(&m); err != nil {
+//			fmt.Println("Error while decoding JSON:", err, m)
+//			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON input"})
+//			return
+//		}
+//		//
+//		//fmt.Println("m = ", m, c.Request.RequestURI)
+//		switch m.MType {
+//		case storage.Counter:
+//			if m.Delta == nil {
+//				c.JSON(http.StatusBadRequest, gin.H{"error": "Delta field is required for Counter"})
+//				return
+//			}
+//			_, ok := h.memStorage.GetCounter(m.ID)
+//			//fmt.Println("result metric counter =", m.ID, *m.Value)
+//			h.memStorage.UpdateCounter(m.ID, *m.Delta, ok)
+//		case storage.Gauge:
+//			if m.Value == nil {
+//				c.JSON(http.StatusBadRequest, gin.H{"error": "Value field is required for Gauge"})
+//				return
+//			}
+//			fmt.Println("result metric gauge =", m.ID, *m.Value)
+//			h.memStorage.UpdateGauge(m.ID, *m.Value)
+//		default:
+//			c.Status(http.StatusBadRequest)
+//			return
+//		}
+//
+//		c.Header("Content-Type", "application/json")
+//		c.Status(http.StatusOK)
+//	}
+//}
 
 func (h *handler) MetricsTextPlainHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
