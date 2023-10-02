@@ -28,6 +28,7 @@ func run() error {
 	s := metrics.NewMemStorage()
 	h := handlers.NewHandler(s)
 	st := store.NewStorager(s)
+
 	if serverConfig.FlagRestore {
 		st.Load(serverConfig.FileStoragePath)
 	}

@@ -38,8 +38,8 @@ func (s *storager) Load(fileName string) {
 			if counterData, ok := value.(map[string]interface{}); ok {
 				counter := make(map[string]int64)
 				for k, v := range counterData {
-					if intValue, isInt := v.(int64); isInt {
-						counter[k] = intValue
+					if floatValue, isFloat := v.(float64); isFloat {
+						counter[k] = int64(floatValue)
 					}
 				}
 				s.memStorage.Counter = counter

@@ -15,7 +15,7 @@ type Server struct {
 
 func ParseServerFlags(s *Server) {
 	flag.StringVar(&s.FlagAddress, "a", "localhost:8080", "address and port to run server")
-	flag.IntVar(&s.StoreInterval, "i", 15, "seconds to save metrics data to server")
+	flag.IntVar(&s.StoreInterval, "i", 300, "seconds to save metrics data to server")
 	flag.StringVar(
 		&s.FileStoragePath,
 		"f",

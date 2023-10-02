@@ -17,3 +17,4 @@
 .vscode
 /random-darwin-arm64
 /metricstest-darwin-arm64
+/tmp/metrics-db.json
