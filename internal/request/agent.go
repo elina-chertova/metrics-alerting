@@ -108,6 +108,7 @@ func metricsToServerAppJSON(s *st.MemStorage, url string) error {
 			if err := sendRequest(f.ContentTypeJSON, isCompress, url, out); err != nil {
 				fmt.Printf("Error sending request for %s: %v\n", metricName, err)
 			}
+
 		}(metricName, metricValue)
 	}
 

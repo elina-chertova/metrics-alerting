@@ -60,24 +60,6 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		//err := json.NewDecoder(c.Request.Body).Decode(&m)
-		//if err != nil {
-		//	fmt.Println(
-		//		"Errorjsonfile 2",
-		//		err,
-		//		c.Request.RequestURI,
-		//		m,
-		//		m.ID,
-		//		m.Delta,
-		//		m.Value,
-		//		m.MType,
-		//	)
-		//	c.Writer.Header().Set("Content-Type", "application/json")
-		//	//return
-		//} else {
-		//	fmt.Println("ok", err, c.Request.RequestURI, m, c.Request.Body)
-		//	c.Writer.Header().Set("Content-Type", "application/json")
-		//}
 		var metric f.Metric
 		var val1 int64
 		var val2 float64
@@ -183,33 +165,24 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON input"})
 			return
 		}
-
-		fmt.Println("m = ", m, c.Request.RequestURI)
+		//
+		//fmt.Println("m = ", m, c.Request.RequestURI)
 		switch m.MType {
 		case storage.Counter:
 			if m.Delta == nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Delta field is required for Counter"})
 				return
 			}
-			//if m.Delta == nil {
-			//	return
-			//}
 			_, ok := h.memStorage.GetCounter(m.ID)
-
-			fmt.Println("result metric counter =", ok, m.ID, *m.Delta)
-			var v1 = *m.Delta
-			h.memStorage.UpdateCounter(m.ID, v1, ok)
+			//fmt.Println("result metric counter =", m.ID, *m.Value)
+			h.memStorage.UpdateCounter(m.ID, *m.Delta, ok)
 		case storage.Gauge:
-			//if m.Value == nil {
-			//	return
-			//}
 			if m.Value == nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Value field is required for Gauge"})
 				return
 			}
-			var v2 = *m.Value
-			fmt.Println("result metric gauge =", m.ID, v2)
-			h.memStorage.UpdateGauge(m.ID, v2)
+			fmt.Println("result metric gauge =", m.ID, *m.Value)
+			h.memStorage.UpdateGauge(m.ID, *m.Value)
 		default:
 			c.Status(http.StatusBadRequest)
 			return
