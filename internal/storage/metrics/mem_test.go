@@ -1,4 +1,4 @@
-package storage
+package metrics
 
 import (
 	"testing"
@@ -12,6 +12,10 @@ func TestExtractMetrics(t *testing.T) {
 	ExtractMetrics(st)
 
 	if len(st.Counter) <= 0 || len(st.Gauge) <= 0 {
-		t.Errorf("Expected the length of st to be greater than 0, but got len(st.Counter)=%d, len(st.Gauge)=%d", len(st.Counter), len(st.Gauge))
+		t.Errorf(
+			"Expected the length of st to be greater than 0, but got len(st.Counter)=%d, len(st.Gauge)=%d",
+			len(st.Counter),
+			len(st.Gauge),
+		)
 	}
 }

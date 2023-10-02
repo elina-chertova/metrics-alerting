@@ -1,4 +1,4 @@
-package storage
+package metrics
 
 const (
 	Gauge   = "gauge"
