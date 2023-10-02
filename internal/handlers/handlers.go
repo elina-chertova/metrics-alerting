@@ -199,9 +199,6 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 			fmt.Println("result metric counter =", ok, m.ID, *m.Delta)
 			var v1 = *m.Delta
 			h.memStorage.UpdateCounter(m.ID, v1, ok)
-
-			rrr, _ := h.memStorage.GetCounter(m.ID)
-			fmt.Println("result metric counter 2 =", ok, m.ID, rrr)
 		case storage.Gauge:
 			//if m.Value == nil {
 			//	return
@@ -213,9 +210,6 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 			var v2 = *m.Value
 			fmt.Println("result metric gauge =", m.ID, v2)
 			h.memStorage.UpdateGauge(m.ID, v2)
-
-			kkk, _ := h.memStorage.GetGauge(m.ID)
-			fmt.Println("result metric gauge 2=", m.ID, *m.Value, kkk)
 		default:
 			c.Status(http.StatusBadRequest)
 			return
