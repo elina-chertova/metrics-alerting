@@ -50,6 +50,8 @@ func (h *handler) MetricsListHandler() gin.HandlerFunc {
 			c.String(http.StatusInternalServerError, "Failed to render template")
 			return
 		}
+
+		c.Writer.Header().Set("Content-Type", "html/text")
 	}
 }
 
