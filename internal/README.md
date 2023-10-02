@@ -13,7 +13,14 @@ test
     
     
 SERVER_PORT=90999 ADDRESS="localhost:${SERVER_PORT}" TEMP_FILE='temp'
-./metricstest-darwin-arm64 -test.v -test.run=^TestIteration7$ \
+./metricstest-darwin-arm64 -test.v -test.run=^TestIteration8$ \
+            -agent-binary-path=cmd/agent/agent \
+            -binary-path=cmd/server/server \
+            -server-port=$SERVER_PORT \
+            -source-path=.
+    
+SERVER_PORT=8080 ADDRESS="localhost:${SERVER_PORT}" 
+./metricstest-darwin-arm64 -test.v -test.run=^TestIteration8$ \
             -agent-binary-path=cmd/agent/agent \
             -binary-path=cmd/server/server \
             -server-port=$SERVER_PORT \

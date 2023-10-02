@@ -51,7 +51,7 @@ func (h *handler) MetricsListHandler() gin.HandlerFunc {
 			return
 		}
 
-		c.Writer.Header().Set("Content-Type", "html/text")
+		c.Writer.Header().Set("Content-Type", "text/html")
 	}
 }
 
@@ -125,7 +125,7 @@ func (h *handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m f.Metric
-		var reader io.Reader
+		var reader io.Reader = c.Request.Body
 		//
 		//if c.Request.Header.Get(`Content-Encoding`) == `gzip` {
 		//	fmt.Printf("here gzip")
@@ -137,7 +137,7 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 		//	reader = gz
 		//	defer gz.Close()
 		//} else {
-		reader = c.Request.Body
+
 		if err := json.NewDecoder(reader).Decode(&m); err != nil {
 			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 			return

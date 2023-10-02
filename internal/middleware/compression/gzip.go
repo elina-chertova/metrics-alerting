@@ -26,7 +26,13 @@ func GzipHandle() gin.HandlerFunc {
 			return
 		}
 
-		if c.Request.Header.Get("Content-Type") != "text/plain" && c.Request.Header.Get("Content-Type") != "application/json" && c.Request.Header.Get("Content-Type") != "html/text" {
+		if c.Request.Header.Get("Content-Type") == "html/text" {
+			c.Writer.Header().Set("Content-Type", "text/html")
+		} else if c.Request.Header.Get("Content-Type") != "text/plain" {
+			c.Writer.Header().Set("Content-Type", "text/plain")
+		} else if c.Request.Header.Get("Content-Type") != "application/json" {
+			c.Writer.Header().Set("Content-Type", "application/json")
+		} else {
 			c.Next()
 			return
 		}
