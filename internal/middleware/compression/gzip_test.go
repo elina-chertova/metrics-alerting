@@ -18,6 +18,8 @@ func TestGzipHandle(t *testing.T) {
 
 	req1, _ := http.NewRequest(http.MethodGet, "/test", nil)
 	req1.Header.Set("Accept-Encoding", "gzip")
+	req1.Header.Set("Content-Type", "text/plain")
+
 	w1 := httptest.NewRecorder()
 	r.ServeHTTP(w1, req1)
 	if w1.Header().Get("Content-Encoding") != "gzip" {
