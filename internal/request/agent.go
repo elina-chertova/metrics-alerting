@@ -78,13 +78,14 @@ func formJSON(metricName string, value any, typeMetric string) f.Metric {
 
 func metricsToServerAppJSON(s *st.MemStorage, url string) error {
 	var wg sync.WaitGroup
-	isCompress := true
+	isCompress := false
 	for metricName, metricValue := range s.Gauge {
 		wg.Add(1)
 		go func(metricName string, metricValue float64) {
 			defer wg.Done()
 			metrics := formJSON(metricName, metricValue, st.Gauge)
 			out, err := json.Marshal(metrics)
+			fmt.Println(string(out))
 			if err != nil {
 				fmt.Printf("error creating JSON: %v\n", err)
 			}
@@ -100,6 +101,7 @@ func metricsToServerAppJSON(s *st.MemStorage, url string) error {
 			defer wg.Done()
 			metrics := formJSON(metricName, metricValue, st.Counter)
 			out, err := json.Marshal(metrics)
+			fmt.Println(string(out))
 			if err != nil {
 				fmt.Printf("error creating JSON: %v\n", err)
 			}

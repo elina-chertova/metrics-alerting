@@ -81,13 +81,14 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 		var metric f.Metric
 		var val1 int64
 		var val2 float64
-
+		fmt.Println(h.memStorage.Gauge)
 		switch m.MType {
 		case storage.Counter:
 			val1, _ = h.memStorage.GetCounter(m.ID)
 			metric = f.Metric{ID: m.ID, MType: storage.Counter, Delta: &val1}
 		case storage.Gauge:
 			val2, _ = h.memStorage.GetGauge(m.ID)
+			fmt.Println("val2 =", val2)
 			metric = f.Metric{ID: m.ID, MType: storage.Gauge, Value: &val2}
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported metric type"})
@@ -154,10 +155,13 @@ type ResMetric struct {
 func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m f.Metric
+		fmt.Println("here")
 		if err := c.Request.ParseForm(); err != nil {
+			fmt.Println("here 1")
 			c.Status(http.StatusBadRequest)
 			return
 		}
+		fmt.Println("here 2")
 
 		//if strings.Contains(
 		//	c.Request.Header.Get("Content-Encoding"),
@@ -175,33 +179,36 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 		//	}
 		//} else {
 		if err := c.ShouldBindJSON(&m); err != nil {
+			fmt.Println("here 3")
+			fmt.Println(err, &m)
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		err := json.NewDecoder(c.Request.Body).Decode(&m)
-		if err != nil {
-			fmt.Println(
-				"Errorjsonfile 5",
-				err,
-				c.Request.RequestURI,
-				m,
-				c.Request.Body,
-				*m.Delta,
-			)
-			//c.Writer.Header().Set("Content-Type", "application/json")
-			//return
-		}
-		fmt.Println("m = ", m, c.Request.RequestURI)
-		//c.Writer.Header().Set("Content-Type", "application/json")
-		//}
+
 		fmt.Println("m = ", m, c.Request.RequestURI)
 		switch m.MType {
 		case storage.Counter:
+			if m.Delta == nil {
+				return
+			}
 			_, ok := h.memStorage.GetCounter(m.ID)
-			fmt.Println("result metric =", ok, m.ID, *m.Delta)
-			h.memStorage.UpdateCounter(m.ID, *m.Delta, ok)
+
+			fmt.Println("result metric counter =", ok, m.ID, *m.Delta)
+			var v1 = *m.Delta
+			h.memStorage.UpdateCounter(m.ID, v1, ok)
+
+			rrr, _ := h.memStorage.GetCounter(m.ID)
+			fmt.Println("result metric counter 2 =", ok, m.ID, rrr)
 		case storage.Gauge:
-			h.memStorage.UpdateGauge(m.ID, *m.Value)
+			if m.Value == nil {
+				return
+			}
+			var v2 = *m.Value
+			fmt.Println("result metric gauge =", m.ID, v2)
+			h.memStorage.UpdateGauge(m.ID, v2)
+
+			kkk, _ := h.memStorage.GetGauge(m.ID)
+			fmt.Println("result metric gauge 2=", m.ID, *m.Value, kkk)
 		default:
 			c.Status(http.StatusBadRequest)
 			return
