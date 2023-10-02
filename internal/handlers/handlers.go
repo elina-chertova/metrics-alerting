@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
 	"github.com/gin-gonic/gin"
@@ -63,26 +62,21 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 		var metric f.Metric
 		var val1 int64
 		var val2 float64
-		fmt.Println(h.memStorage.Gauge)
+
 		switch m.MType {
 		case storage.Counter:
 			val1, _ = h.memStorage.GetCounter(m.ID)
 			metric = f.Metric{ID: m.ID, MType: storage.Counter, Delta: &val1}
 		case storage.Gauge:
 			val2, _ = h.memStorage.GetGauge(m.ID)
-			fmt.Println("val2 =", val2)
 			metric = f.Metric{ID: m.ID, MType: storage.Gauge, Value: &val2}
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported metric type"})
 			return
 		}
 		out, err := json.Marshal(metric)
-		fmt.Println(string(out), c.Request.RequestURI)
 		if err != nil {
-			fmt.Println(err, c.Request.RequestURI)
-
 			c.String(http.StatusInternalServerError, "Failed json creating")
-
 		}
 		c.Writer.WriteHeader(http.StatusOK)
 		c.Writer.Header().Set("Content-Type", "application/json")
@@ -116,8 +110,6 @@ func (h *handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 
 		resp, err := json.Marshal(value)
 		if err != nil {
-			fmt.Println("Errorjsonfile 1", err, c.Request.RequestURI)
-
 			c.Status(http.StatusBadRequest)
 			return
 		}
@@ -127,63 +119,50 @@ func (h *handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 	}
 }
 
-type ResMetric struct {
-	ID    string  `json:"id"`
-	MType string  `json:"type"`
-	Delta int64   `json:"delta,omitempty"`
-	Value float64 `json:"value,omitempty"`
-}
-
 func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m f.Metric
-		fmt.Println("Handling JSON request")
 
-		// Attempt to parse the incoming JSON data
 		if err := c.ShouldBindJSON(&m); err != nil {
-			fmt.Println("Error parsing JSON:", err)
-
-			// Log the error and return a JSON response indicating the error
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		fmt.Println("Parsed JSON data:", m)
+		var returnedMetric f.Metric
 
-		// Now, you can continue processing the parsed JSON data
 		switch m.MType {
 		case storage.Counter:
 			if m.Delta == nil {
-				fmt.Println("Delta is nil, skipping update")
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Delta is nil, skipping update"})
 				return
 			}
 			_, ok := h.memStorage.GetCounter(m.ID)
-
-			fmt.Println("result metric counter =", ok, m.ID, *m.Delta)
 			var v1 = *m.Delta
 			h.memStorage.UpdateCounter(m.ID, v1, ok)
 
-			rrr, _ := h.memStorage.GetCounter(m.ID)
-			fmt.Println("result metric counter 2 =", ok, m.ID, rrr)
+			v1, _ = h.memStorage.GetCounter(m.ID)
+			returnedMetric = f.Metric{ID: m.ID, MType: storage.Counter, Delta: &v1}
 		case storage.Gauge:
 			if m.Value == nil {
-				fmt.Println("Value is nil, skipping update")
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Value is nil, skipping update"})
 				return
 			}
 			var v2 = *m.Value
-			fmt.Println("result metric gauge =", m.ID, v2)
 			h.memStorage.UpdateGauge(m.ID, v2)
 
-			kkk, _ := h.memStorage.GetGauge(m.ID)
-			fmt.Println("result metric gauge 2 =", m.ID, *m.Value, kkk)
+			v2, _ = h.memStorage.GetGauge(m.ID)
+			returnedMetric = f.Metric{ID: m.ID, MType: storage.Gauge, Value: &v2}
 		default:
-			fmt.Println("Unsupported metric type:", m.MType)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported metric type"})
 			return
 		}
-
-		c.Header("Content-Type", "application/json")
-		c.Status(http.StatusOK)
+		out, err := json.Marshal(returnedMetric)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "Failed json creating")
+		}
+		c.Writer.WriteHeader(http.StatusOK)
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.Writer.Write(out)
 	}
 }
 
