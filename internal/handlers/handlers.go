@@ -179,9 +179,8 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 		//	}
 		//} else {
 		if err := c.ShouldBindJSON(&m); err != nil {
-			fmt.Println("here 3")
-			fmt.Println(err, &m)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			fmt.Println("Error while decoding JSON:", err, m)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON input"})
 			return
 		}
 
@@ -189,8 +188,12 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 		switch m.MType {
 		case storage.Counter:
 			if m.Delta == nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Delta field is required for Counter"})
 				return
 			}
+			//if m.Delta == nil {
+			//	return
+			//}
 			_, ok := h.memStorage.GetCounter(m.ID)
 
 			fmt.Println("result metric counter =", ok, m.ID, *m.Delta)
@@ -200,7 +203,11 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 			rrr, _ := h.memStorage.GetCounter(m.ID)
 			fmt.Println("result metric counter 2 =", ok, m.ID, rrr)
 		case storage.Gauge:
+			//if m.Value == nil {
+			//	return
+			//}
 			if m.Value == nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Value field is required for Gauge"})
 				return
 			}
 			var v2 = *m.Value
