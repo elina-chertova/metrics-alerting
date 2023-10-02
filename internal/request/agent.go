@@ -11,12 +11,12 @@ import (
 	"sync"
 )
 
-func MetricsToServer(s *st.MemStorage, contentType string, url string) error {
+func MetricsToServer(s *st.MemStorage, contentType string, url string, isCompress bool) error {
 	switch contentType {
 	case f.ContentTypeTextPlain:
-		return metricsToServerTextPlain(s, url)
+		return metricsToServerTextPlain(s, url, isCompress)
 	case f.ContentTypeJSON:
-		return metricsToServerAppJSON(s, url)
+		return metricsToServerAppJSON(s, url, isCompress)
 	default:
 		return fmt.Errorf("error creating HTTP request, wrong Content-Type: %s", contentType)
 	}
@@ -76,16 +76,15 @@ func formJSON(metricName string, value any, typeMetric string) f.Metric {
 	return metrics
 }
 
-func metricsToServerAppJSON(s *st.MemStorage, url string) error {
+func metricsToServerAppJSON(s *st.MemStorage, url string, isCompress bool) error {
 	var wg sync.WaitGroup
-	isCompress := false
+
 	for metricName, metricValue := range s.Gauge {
 		wg.Add(1)
 		go func(metricName string, metricValue float64) {
 			defer wg.Done()
 			metrics := formJSON(metricName, metricValue, st.Gauge)
 			out, err := json.Marshal(metrics)
-			fmt.Println(string(out))
 			if err != nil {
 				fmt.Printf("error creating JSON: %v\n", err)
 			}
@@ -101,7 +100,7 @@ func metricsToServerAppJSON(s *st.MemStorage, url string) error {
 			defer wg.Done()
 			metrics := formJSON(metricName, metricValue, st.Counter)
 			out, err := json.Marshal(metrics)
-			fmt.Println(string(out))
+
 			if err != nil {
 				fmt.Printf("error creating JSON: %v\n", err)
 			}
@@ -116,9 +115,8 @@ func metricsToServerAppJSON(s *st.MemStorage, url string) error {
 	return nil
 }
 
-func metricsToServerTextPlain(s *st.MemStorage, url string) error {
+func metricsToServerTextPlain(s *st.MemStorage, url string, isCompress bool) error {
 	var wg sync.WaitGroup
-	isCompress := false
 	for metricName, metricValue := range s.Gauge {
 		wg.Add(1)
 		go func(metricName string, metricValue float64) {
@@ -164,6 +162,7 @@ func sendRequest(contentType string, isCompress bool, url string, jsonBody []byt
 	}
 
 	resp, err := grequests.Post(url, ro)
+	fmt.Println(resp)
 	if err != nil {
 		return fmt.Errorf("error creating HTTP request: %v", err)
 	}

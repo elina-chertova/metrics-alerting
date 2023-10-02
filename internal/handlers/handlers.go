@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 	"html/template"
+	"io"
 	"net/http"
 	"strconv"
 )
@@ -122,12 +123,23 @@ func (h *handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m f.Metric
-
-		if err := c.ShouldBindJSON(&m); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		var reader io.Reader
+		//
+		//if c.Request.Header.Get(`Content-Encoding`) == `gzip` {
+		//	fmt.Printf("here gzip")
+		//	gz, err := gzip.NewReader(c.Request.Body)
+		//	if err != nil {
+		//		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		//		return
+		//	}
+		//	reader = gz
+		//	defer gz.Close()
+		//} else {
+		reader = c.Request.Body
+		if err := json.NewDecoder(reader).Decode(&m); err != nil {
+			http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
-
 		var returnedMetric f.Metric
 
 		switch m.MType {
@@ -163,6 +175,35 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 		c.Writer.WriteHeader(http.StatusOK)
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.Writer.Write(out)
+		//}
+		//
+		//body, err := io.ReadAll(reader)
+		//if err != nil {
+		//	http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		//	return
+		//}
+		//
+
+		//if strings.Contains(
+		//	c.Request.Header.Get("Content-Encoding"),
+		//	"gzip",
+		//) {
+		//	gz, err := gzip.NewReader(c.Request.Body)
+		//	if err != nil {
+		//		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		//		return
+		//	}
+		//	if err := json.NewDecoder(gz).Decode(&m); err != nil {
+		//
+		//		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+		//		return
+		//	}
+		//}
+		//if err := c.ShouldBindJSON(&m); err != nil {
+		//	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		//	return
+		//}
+
 	}
 }
 
@@ -178,21 +219,21 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 //		}
 //		fmt.Println("here 2")
 //
-//		//if strings.Contains(
-//		//	c.Request.Header.Get("Content-Encoding"),
-//		//	"gzip",
-//		//) {
-//		//	gz, err := gzip.NewReader(c.Request.Body)
-//		//	if err != nil {
-//		//		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-//		//		return
-//		//	}
-//		//	if err := json.NewDecoder(gz).Decode(&m); err != nil {
-//		//
-//		//		http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
-//		//		return
-//		//	}
-//		//} else {
+//		if strings.Contains(
+//			c.Request.Header.Get("Content-Encoding"),
+//			"gzip",
+//		) {
+//			gz, err := gzip.NewReader(c.Request.Body)
+//			if err != nil {
+//				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+//				return
+//			}
+//			if err := json.NewDecoder(gz).Decode(&m); err != nil {
+//
+//				http.Error(c.Writer, err.Error(), http.StatusInternalServerError)
+//				return
+//			}
+//		} else {
 //		if err := c.ShouldBindJSON(&m); err != nil {
 //			fmt.Println("Error while decoding JSON:", err, m)
 //			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON input"})

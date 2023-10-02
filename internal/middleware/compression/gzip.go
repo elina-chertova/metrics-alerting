@@ -4,7 +4,6 @@ import (
 	"compress/gzip"
 	"github.com/gin-gonic/gin"
 	"io"
-	"net/http"
 	"strings"
 )
 
@@ -22,7 +21,12 @@ func GzipHandle() gin.HandlerFunc {
 		if !strings.Contains(
 			c.Request.Header.Get("Accept-Encoding"),
 			"gzip",
-		) && c.Request.Method != http.MethodGet {
+		) {
+			c.Next()
+			return
+		}
+
+		if c.Request.Header.Get("Content-Type") != "text/plain" && c.Request.Header.Get("Content-Type") != "application/json" {
 			c.Next()
 			return
 		}
@@ -39,23 +43,3 @@ func GzipHandle() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-//func LengthHandle(w http.ResponseWriter, r *http.Request) {
-//	// создаём *gzip.Reader, который будет читать тело запроса
-//	// и распаковывать его
-//	gz, err := gzip.NewReader(r.Body)
-//	if err != nil {
-//		http.Error(w, err.Error(), http.StatusInternalServerError)
-//		return
-//	}
-//
-//	defer gz.Close()
-//
-//	// при чтении вернётся распакованный слайс байт
-//	body, err := io.ReadAll(gz)
-//	if err != nil {
-//		http.Error(w, err.Error(), http.StatusInternalServerError)
-//		return
-//	}
-//
-//}

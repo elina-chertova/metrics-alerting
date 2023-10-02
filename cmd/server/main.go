@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/handlers"
+	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
 	"github.com/gin-gonic/gin"
@@ -20,7 +21,7 @@ func run() error {
 	logger.LogInit()
 	router := gin.Default()
 	router.Use(logger.RequestLogger())
-	//router.Use(compression.GzipHandle())
+	router.Use(compression.GzipHandle())
 	s := storage.NewMemStorage()
 	h := handlers.NewHandler(s)
 

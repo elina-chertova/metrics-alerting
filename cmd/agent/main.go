@@ -12,6 +12,7 @@ func main() {
 	storage := st.NewMemStorage()
 	urlUpdate := "http://" + agentConfig.FlagAddress + "/update"
 	flagContentType := "application/json"
+	isCompress := false
 	//agentConfig.FlagContentType
 	go func() {
 		for {
@@ -22,7 +23,7 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(time.Duration(agentConfig.ReportInterval) * time.Second)
-			r.MetricsToServer(storage, flagContentType, urlUpdate)
+			r.MetricsToServer(storage, flagContentType, urlUpdate, isCompress)
 		}
 	}()
 
