@@ -13,7 +13,7 @@ func main() {
 	urlUpdate := "http://" + agentConfig.FlagAddress + "/update"
 	flagContentType := "application/json"
 	isCompress := false
-	//agentConfig.FlagContentType
+
 	go func() {
 		for {
 			st.ExtractMetrics(storage)

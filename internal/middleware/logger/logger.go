@@ -1,9 +1,9 @@
 package logger
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,11 +11,15 @@ import (
 
 var Log *zap.Logger
 
-func LogInit() {
+func LogInit(level string) {
+	lvl, err := zap.ParseAtomicLevel(level)
+	if err != nil {
+		_ = fmt.Errorf("error parsing logger level", err)
+	}
 	logger := zap.Must(zap.NewProduction())
 	defer logger.Sync()
 	configuration := zap.NewProductionConfig()
-	configuration.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+	configuration.Level = lvl
 	zl := zap.Must(configuration.Build())
 	Log = zl
 }

@@ -8,12 +8,8 @@ import (
 	"path/filepath"
 )
 
-func (s *storager) Save(fileName string) {
-	combinedData := map[string]interface{}{
-		"gauge":   s.memStorage.Gauge,
-		"counter": s.memStorage.Counter,
-	}
-
+func (s *storager) Backup(fileName string) {
+	combinedData := GenerateCombinedData(s)
 	data, err := json.MarshalIndent(combinedData, "", "   ")
 	if err != nil {
 		fmt.Printf("error MarshalIndent: %v\n", err)

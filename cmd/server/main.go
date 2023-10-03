@@ -20,7 +20,7 @@ func main() {
 
 func run() error {
 	serverConfig := config.NewServer()
-	logger.LogInit()
+	logger.LogInit("info")
 	router := gin.Default()
 	router.Use(logger.RequestLogger())
 	router.Use(compression.GzipHandle())
@@ -47,7 +47,7 @@ func run() error {
 	go func() {
 		for {
 			time.Sleep(time.Duration(serverConfig.StoreInterval) * time.Second)
-			st.Save(serverConfig.FileStoragePath)
+			st.Backup(serverConfig.FileStoragePath)
 		}
 	}()
 
