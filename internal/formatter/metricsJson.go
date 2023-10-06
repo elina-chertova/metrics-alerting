@@ -44,8 +44,3 @@ func (m Metric) MarshalJSON() ([]byte, error) {
 type Marshaler interface {
 	MarshalJSON() ([]byte, error)
 }
-
-//
-//type Metrics struct {
-//	metrics []Metric
-//}

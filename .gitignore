@@ -19,3 +19,4 @@
 /metricstest-darwin-arm64
 /tmp/metrics-db.json
 /cmd/server/server
+/cmd/agent/agent

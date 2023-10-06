@@ -14,7 +14,7 @@ var Log *zap.Logger
 func LogInit(level string) {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
-		_ = fmt.Errorf("error parsing logger level %s", err)
+		_ = fmt.Errorf("error parsing logger level %v", err)
 	}
 	logger := zap.Must(zap.NewProduction())
 	defer logger.Sync()

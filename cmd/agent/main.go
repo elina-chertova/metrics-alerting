@@ -12,7 +12,7 @@ func main() {
 	storage := st.NewMemStorage()
 	urlUpdate := "http://" + agentConfig.FlagAddress + "/update"
 	flagContentType := "application/json"
-	isCompress := false
+	isCompress := true
 
 	go func() {
 		for {
