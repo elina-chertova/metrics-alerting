@@ -7,7 +7,6 @@ import (
 	"github.com/goccy/go-json"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 )
@@ -127,7 +126,7 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m f.Metric
 		var reader io.Reader = c.Request.Body
-		body, err := ioutil.ReadAll(reader)
+		body, err := io.ReadAll(reader)
 		if err != nil {
 			http.Error(c.Writer, "error reading request body", http.StatusInternalServerError)
 			return
