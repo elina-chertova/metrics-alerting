@@ -167,7 +167,7 @@ func sendRequest(contentType string, isCompress bool, url string, jsonBody []byt
 	}
 
 	resp, err := grequests.Post(url, ro)
-	fmt.Println(resp)
+
 	if err != nil {
 		return fmt.Errorf("error creating HTTP request: %v", err)
 	}

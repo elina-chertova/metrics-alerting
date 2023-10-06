@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"github.com/gin-gonic/gin"
 	"io"
+	"net/http"
 	"strings"
 )
 
@@ -12,40 +13,65 @@ type gzipWriter struct {
 	Writer io.Writer
 }
 
+type gzipReader struct {
+	io.ReadCloser
+	Reader *gzip.Reader
+}
+
 func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
+func (r gzipReader) Read(p []byte) (n int, err error) {
+	return r.Reader.Read(p)
+}
+
 func GzipHandle() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if !strings.Contains(
-			c.Request.Header.Get("Accept-Encoding"),
-			"gzip",
-		) {
-			c.Next()
-			return
-		}
-
-		if c.Request.Header.Get("Content-Type") == "html/text" || c.Request.RequestURI == "/" {
+		contentType := c.Request.Header.Get("Content-Type")
+		if contentType == "text/html" || c.Request.RequestURI == "/" {
 			c.Writer.Header().Set("Content-Type", "text/html")
-		} else if c.Request.Header.Get("Content-Type") != "text/plain" {
+		} else if contentType == "text/plain" {
 			c.Writer.Header().Set("Content-Type", "text/plain")
-		} else if c.Request.Header.Get("Content-Type") != "application/json" {
+		} else if contentType == "application/json" {
 			c.Writer.Header().Set("Content-Type", "application/json")
 		} else {
 			c.Next()
 			return
 		}
 
-		gz, err := gzip.NewWriterLevel(c.Writer, gzip.BestSpeed)
-		if err != nil {
-			io.WriteString(c.Writer, err.Error())
-			return
-		}
-		defer gz.Close()
+		acceptEncoding := c.Request.Header.Get("Accept-Encoding")
+		supportsGzip := strings.Contains(acceptEncoding, "gzip")
 
-		c.Header("Content-Encoding", "gzip")
-		c.Writer = gzipWriter{ResponseWriter: c.Writer, Writer: gz}
+		var gz *gzip.Writer
+
+		if supportsGzip {
+			var err error
+			gz, err = gzip.NewWriterLevel(c.Writer, gzip.BestSpeed)
+			if err != nil {
+				io.WriteString(c.Writer, err.Error())
+				return
+			}
+			defer gz.Close()
+		}
+
+		contentEncoding := c.Request.Header.Get("Content-Encoding")
+		sendsGzip := strings.Contains(contentEncoding, "gzip")
+		if sendsGzip {
+			body, err := gzip.NewReader(c.Request.Body)
+			if err != nil {
+				c.Writer.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			c.Request.Body = body
+			defer body.Close()
+		}
+
+		if gz != nil {
+			c.Header("Content-Encoding", "gzip")
+			c.Writer = gzipWriter{ResponseWriter: c.Writer, Writer: gz}
+		}
+
 		c.Next()
 	}
 }
