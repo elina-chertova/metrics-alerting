@@ -15,3 +15,8 @@
 # IDEs directories
 .idea
 .vscode
+/random-darwin-arm64
+/metricstest-darwin-arm64
+/tmp/metrics-db.json
+/cmd/server/server
+/cmd/agent/agent

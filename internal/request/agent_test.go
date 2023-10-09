@@ -8,15 +8,15 @@ import (
 )
 
 func TestSendRequest(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			},
+		),
+	)
 	defer server.Close()
 
-	name := "metricName"
-	value := 42
-	metricsType := "counter"
-
-	err := sendRequest(name, value, metricsType, server.URL)
+	err := sendRequest("application/json", false, server.URL, nil)
 	assert.NoError(t, err)
 }

@@ -3,7 +3,9 @@ package main
 import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/handlers"
-	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
+	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
+	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage/metrics"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -16,13 +18,28 @@ func main() {
 
 func run() error {
 	serverConfig := config.NewServer()
+	logger.LogInit("info")
 	router := gin.Default()
-	s := storage.NewMemStorage()
-	router.POST("/update/:metricType/:metricName/:metricValue", handlers.MetricsHandler(s))
-	router.GET("/value/:metricType/:metricName", handlers.GetMetricsHandler(s))
-	router.GET("/", handlers.MetricsListHandler(s))
-	router.NoRoute(func(c *gin.Context) {
-		c.String(http.StatusNotFound, "Page not found")
-	})
-	return router.Run(serverConfig.FlagAddress)
+	router.Use(logger.RequestLogger())
+	router.Use(compression.GzipHandle())
+
+	s := metrics.NewMemStorage(true, serverConfig)
+	h := handlers.NewHandler(s)
+
+	router.POST("/update/", h.MetricsJSONHandler())
+	router.POST("/update/:metricType/:metricName/:metricValue", h.MetricsTextPlainHandler())
+	router.GET("/value/:metricType/:metricName", h.GetMetricsTextPlainHandler())
+	router.POST("/value/", h.GetMetricsJSONHandler())
+	router.GET("/", h.MetricsListHandler())
+	router.NoRoute(
+		func(c *gin.Context) {
+			c.String(http.StatusNotFound, "Page not found")
+		},
+	)
+
+	if err := router.Run(serverConfig.FlagAddress); err != nil {
+		return err
+	}
+
+	return nil
 }
