@@ -6,7 +6,6 @@ import (
 )
 
 func TestMetrics_MarshalJSON(t *testing.T) {
-	//var v1 int64 = 10
 	var v2 = 20.5
 	metrics := Metric{
 		ID:    "metric1",

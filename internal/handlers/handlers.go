@@ -16,33 +16,32 @@ type metricsStorage interface {
 	UpdateGauge(name string, value float64)
 	GetCounter(name string) (int64, bool)
 	GetGauge(name string) (float64, bool)
+	GetMetrics() (map[string]int64, map[string]float64)
 }
 
 type handler struct {
-	memStorage *metrics.MemStorage
+	memStorage metricsStorage
 }
 
-func NewHandler(st *metrics.MemStorage) *handler {
+func NewHandler(st metricsStorage) *handler {
 	return &handler{st}
 }
 
 func (h *handler) MetricsListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		h.memStorage.LockGauge()
-		h.memStorage.LockCounter()
-		defer h.memStorage.UnlockGauge()
-		defer h.memStorage.UnlockCounter()
-
 		tmpl, err := template.New("data").Parse("<!DOCTYPE html>\n<html>\n\n<head>\n    <title>Metric List</title>\n</head>\n\n<body>\n<ul>\n    {{ range $key, $value := .MetricsC }}\n    <p>{{$key}}: {{$value}}</p>\n    {{ end }}\n    {{ range $key, $value := .MetricsG }}\n    <p>{{$key}}: {{$value}}</p>\n    {{ end }}\n</ul>\n</body>\n\n</html>")
 		if err != nil {
 			c.String(http.StatusInternalServerError, "Failed to load template")
 			return
 		}
-
+		counter, gauge := h.memStorage.GetMetrics()
 		err = tmpl.Execute(
-			c.Writer, metrics.MetricsData{
-				MetricsC: h.memStorage.Counter,
-				MetricsG: h.memStorage.Gauge,
+			c.Writer, struct {
+				MetricsC map[string]int64
+				MetricsG map[string]float64
+			}{
+				MetricsC: counter,
+				MetricsG: gauge,
 			},
 		)
 

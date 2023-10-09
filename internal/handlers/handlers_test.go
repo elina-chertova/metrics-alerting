@@ -52,7 +52,7 @@ func TestMetricsHandler(t *testing.T) {
 		t.Run(
 			tt.name, func(t *testing.T) {
 				router := gin.Default()
-				st := metrics.NewMemStorage()
+				st := metrics.NewMemStorage(false, nil)
 				h := NewHandler(st)
 				router.POST(
 					"/update/:metricType/:metricName/:metricValue",

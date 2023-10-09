@@ -1,16 +1,12 @@
 package metrics
 
 import (
+	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"math/rand"
 	"runtime"
 	"sync"
 	"time"
 )
-
-type MetricsData struct {
-	MetricsC map[string]int64
-	MetricsG map[string]float64
-}
 
 type MemStorage struct {
 	GaugeMu   sync.Mutex
@@ -19,55 +15,110 @@ type MemStorage struct {
 	Counter   map[string]int64 `json:"counter"`
 }
 
-func NewMemStorage() *MemStorage {
-	return &MemStorage{
+func NewMemStorage(serverConfigEnable bool, configuration *config.Server) *MemStorage {
+	s := &MemStorage{
 		Gauge:   make(map[string]float64),
 		Counter: make(map[string]int64),
 	}
+	if serverConfigEnable {
+		if configuration.FlagRestore {
+			s.Load(configuration.FileStoragePath)
+		}
+		go func() {
+			for {
+				time.Sleep(time.Duration(configuration.StoreInterval) * time.Second)
+				s.Backup(configuration.FileStoragePath)
+			}
+		}()
+	}
+	return s
 }
 
-func (st *MemStorage) LockCounter() {
-	st.CounterMu.Lock()
+func (s *MemStorage) LockCounter() {
+	s.CounterMu.Lock()
 }
-func (st *MemStorage) LockGauge() {
-	st.GaugeMu.Lock()
-}
-
-func (st *MemStorage) UnlockCounter() {
-	st.CounterMu.Unlock()
-}
-func (st *MemStorage) UnlockGauge() {
-	st.GaugeMu.Unlock()
+func (s *MemStorage) LockGauge() {
+	s.GaugeMu.Lock()
 }
 
-func (st *MemStorage) UpdateCounter(name string, value int64, ok bool) {
-	st.LockCounter()
-	defer st.UnlockCounter()
+func (s *MemStorage) UnlockCounter() {
+	s.CounterMu.Unlock()
+}
+func (s *MemStorage) UnlockGauge() {
+	s.GaugeMu.Unlock()
+}
+
+func (s *MemStorage) UpdateCounter(name string, value int64, ok bool) {
+	s.LockCounter()
+	defer s.UnlockCounter()
 	if ok {
-		st.Counter[name] += value
+		s.Counter[name] += value
 	} else {
-		st.Counter[name] = value
+		s.Counter[name] = value
 	}
 }
 
-func (st *MemStorage) UpdateGauge(name string, value float64) {
-	st.LockGauge()
-	defer st.UnlockGauge()
-	st.Gauge[name] = value
+func (s *MemStorage) UpdateGauge(name string, value float64) {
+	s.LockGauge()
+	defer s.UnlockGauge()
+	s.Gauge[name] = value
 }
 
-func (st *MemStorage) GetCounter(name string) (int64, bool) {
-	st.LockCounter()
-	defer st.UnlockCounter()
-	value, ok := st.Counter[name]
+func (s *MemStorage) GetCounter(name string) (int64, bool) {
+	s.LockCounter()
+	defer s.UnlockCounter()
+	value, ok := s.Counter[name]
 	return value, ok
 }
 
-func (st *MemStorage) GetGauge(name string) (float64, bool) {
-	st.LockGauge()
-	defer st.UnlockGauge()
-	value, ok := st.Gauge[name]
+func (s *MemStorage) GetGauge(name string) (float64, bool) {
+	s.LockGauge()
+	defer s.UnlockGauge()
+	value, ok := s.Gauge[name]
 	return value, ok
+}
+
+func (s *MemStorage) GetMetrics() (map[string]int64, map[string]float64) {
+	s.LockGauge()
+	s.LockCounter()
+	defer s.UnlockGauge()
+	defer s.UnlockCounter()
+	return s.Counter, s.Gauge
+}
+
+func GenerateCombinedData(s *MemStorage) map[string]interface{} {
+	return map[string]interface{}{
+		Gauge:   s.Gauge,
+		Counter: s.Counter,
+	}
+}
+
+func (s *MemStorage) UpdateBackupMap(combinedData map[string]interface{}) {
+	for key, value := range combinedData {
+		switch key {
+		case Gauge:
+			if gaugeData, ok := value.(map[string]interface{}); ok {
+				gauge := make(map[string]float64)
+				for k, v := range gaugeData {
+					if floatValue, isFloat := v.(float64); isFloat {
+						gauge[k] = floatValue
+					}
+				}
+				s.Gauge = gauge
+			}
+
+		case Counter:
+			if counterData, ok := value.(map[string]interface{}); ok {
+				counter := make(map[string]int64)
+				for k, v := range counterData {
+					if floatValue, isFloat := v.(float64); isFloat {
+						counter[k] = int64(floatValue)
+					}
+				}
+				s.Counter = counter
+			}
+		}
+	}
 }
 
 func ExtractMetrics(s *MemStorage) {

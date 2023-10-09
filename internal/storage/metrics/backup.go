@@ -1,4 +1,4 @@
-package store
+package metrics
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-func (s *storager) Backup(fileName string) {
+func (s *MemStorage) Backup(fileName string) {
 	combinedData := GenerateCombinedData(s)
 	data, err := json.MarshalIndent(combinedData, "", "   ")
 	if err != nil {

@@ -1,4 +1,4 @@
-package store
+package metrics
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func (s *storager) Load(fileName string) {
+func (s *MemStorage) Load(fileName string) {
 	combinedData := GenerateCombinedData(s)
 	dataNew, err := os.ReadFile(fileName)
 	if err != nil {

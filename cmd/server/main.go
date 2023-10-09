@@ -6,10 +6,8 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/metrics"
-	"github.com/elina-chertova/metrics-alerting.git/internal/storage/store"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"time"
 )
 
 func main() {
@@ -25,13 +23,8 @@ func run() error {
 	router.Use(logger.RequestLogger())
 	router.Use(compression.GzipHandle())
 
-	s := metrics.NewMemStorage()
+	s := metrics.NewMemStorage(true, serverConfig)
 	h := handlers.NewHandler(s)
-	st := store.NewStorager(s)
-
-	if serverConfig.FlagRestore {
-		st.Load(serverConfig.FileStoragePath)
-	}
 
 	router.POST("/update/", h.MetricsJSONHandler())
 	router.POST("/update/:metricType/:metricName/:metricValue", h.MetricsTextPlainHandler())
@@ -43,13 +36,6 @@ func run() error {
 			c.String(http.StatusNotFound, "Page not found")
 		},
 	)
-
-	go func() {
-		for {
-			time.Sleep(time.Duration(serverConfig.StoreInterval) * time.Second)
-			st.Backup(serverConfig.FileStoragePath)
-		}
-	}()
 
 	if err := router.Run(serverConfig.FlagAddress); err != nil {
 		return err

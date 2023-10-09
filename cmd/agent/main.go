@@ -9,7 +9,7 @@ import (
 
 func main() {
 	agentConfig := config.NewAgent()
-	storage := st.NewMemStorage()
+	storage := st.NewMemStorage(false, nil)
 	urlUpdate := "http://" + agentConfig.FlagAddress + "/update"
 	flagContentType := "application/json"
 	isCompress := true
