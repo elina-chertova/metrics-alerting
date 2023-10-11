@@ -24,8 +24,7 @@ func run() error {
 	router.Use(logger.RequestLogger())
 	router.Use(compression.GzipHandle())
 
-	url := "postgres://postgres:123qwe@localhost:5432/metrics_db"
-	connection := db.Connect(url)
+	connection := db.Connect(serverConfig.DatabaseDSN)
 	router.GET("/ping", db.PingDB(connection))
 
 	s := metrics.NewMemStorage(true, serverConfig)
