@@ -11,6 +11,7 @@ type Server struct {
 	StoreInterval   int
 	FileStoragePath string
 	FlagRestore     bool
+	dbDSN           string
 }
 
 func ParseServerFlags(s *Server) {
@@ -23,6 +24,13 @@ func ParseServerFlags(s *Server) {
 		"temp file to save metrics",
 	)
 	flag.BoolVar(&s.FlagRestore, "r", true, "is load saved metrics during server start")
+	flag.StringVar(
+		&s.dbDSN,
+		"d",
+		"postgres://postgres:123qwe@localhost:5432/metrics_db",
+		"Database DSN",
+	)
+
 	flag.Parse()
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
 		s.FlagAddress = envRunAddr
@@ -35,6 +43,9 @@ func ParseServerFlags(s *Server) {
 	}
 	if envRunRestore := os.Getenv("RESTORE"); envRunRestore != "" {
 		s.FlagRestore, _ = strconv.ParseBool(envRunRestore)
+	}
+	if envRunDSN := os.Getenv("DATABASE_DSN"); envRunDSN != "" {
+		s.dbDSN = envRunDSN
 	}
 
 }
