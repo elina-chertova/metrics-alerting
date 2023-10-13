@@ -16,14 +16,14 @@ type Server struct {
 
 func ParseServerFlags(s *Server) {
 	flag.StringVar(&s.FlagAddress, "a", "localhost:8080", "address and port to run server")
-	flag.IntVar(&s.StoreInterval, "i", 300, "seconds to save fileMemory data to server")
+	flag.IntVar(&s.StoreInterval, "i", 300, "seconds to save filememory data to server")
 	flag.StringVar(
 		&s.FileStoragePath,
 		"f",
-		"tmp/fileMemory-db.json",
-		"temp file to save fileMemory",
+		"tmp/filememory-db.json",
+		"temp file to save filememory",
 	)
-	flag.BoolVar(&s.FlagRestore, "r", true, "is load saved fileMemory during server start")
+	flag.BoolVar(&s.FlagRestore, "r", true, "is load saved filememory during server start")
 	flag.StringVar(
 		&s.DatabaseDSN,
 		"d",

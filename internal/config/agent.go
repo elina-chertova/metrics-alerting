@@ -14,7 +14,7 @@ type Agent struct {
 
 func ParseAgentFlags(a *Agent) {
 	flag.StringVar(&a.FlagAddress, "a", "localhost:8080", "address and port to run server")
-	flag.IntVar(&a.PollInterval, "p", 2, "time in seconds to update fileMemory, example: 2")
+	flag.IntVar(&a.PollInterval, "p", 2, "time in seconds to update filememory, example: 2")
 	flag.IntVar(&a.ReportInterval, "r", 10, "time in seconds to send data to server, example: 10")
 	flag.Parse()
 

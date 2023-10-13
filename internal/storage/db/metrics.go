@@ -3,7 +3,7 @@ package db
 import (
 	"fmt"
 	s "github.com/elina-chertova/metrics-alerting.git/internal/storage"
-	fm "github.com/elina-chertova/metrics-alerting.git/internal/storage/fileMemory"
+	fm "github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 )
 
 func (db *DB) UpdateCounter(name string, value int64, ok bool) {
