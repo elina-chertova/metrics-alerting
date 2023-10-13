@@ -2,10 +2,10 @@ package main
 
 import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
-	"github.com/elina-chertova/metrics-alerting.git/internal/db"
 	"github.com/elina-chertova/metrics-alerting.git/internal/handlers"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage/db"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/file_memory"
 	"github.com/gin-gonic/gin"
 
