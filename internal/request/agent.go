@@ -7,7 +7,7 @@ import (
 	"fmt"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
-	metrics2 "github.com/elina-chertova/metrics-alerting.git/internal/storage/file_memory"
+	metrics2 "github.com/elina-chertova/metrics-alerting.git/internal/storage/fileMemory"
 	"github.com/levigross/grequests"
 	"sync"
 )

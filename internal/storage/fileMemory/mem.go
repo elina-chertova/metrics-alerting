@@ -1,4 +1,4 @@
-package file_memory
+package fileMemory
 
 import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"

@@ -6,7 +6,7 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/db"
-	"github.com/elina-chertova/metrics-alerting.git/internal/storage/file_memory"
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage/fileMemory"
 	"github.com/gin-gonic/gin"
 
 	"net/http"
@@ -32,7 +32,7 @@ func run() error {
 		router.GET("/ping", connection.PingDB())
 		h = handlers.NewHandler(connection)
 	} else {
-		s := file_memory.NewMemStorage(true, serverConfig)
+		s := fileMemory.NewMemStorage(true, serverConfig)
 		h = handlers.NewHandler(s)
 	}
 

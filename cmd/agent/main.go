@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	r "github.com/elina-chertova/metrics-alerting.git/internal/request"
-	st "github.com/elina-chertova/metrics-alerting.git/internal/storage/file_memory"
+	st "github.com/elina-chertova/metrics-alerting.git/internal/storage/fileMemory"
 	"time"
 )
 
