@@ -1,4 +1,4 @@
-package metrics
+package file_memory
 
 import (
 	"testing"

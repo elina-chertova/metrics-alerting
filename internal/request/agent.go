@@ -6,7 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
-	metrics2 "github.com/elina-chertova/metrics-alerting.git/internal/storage/metrics"
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
+	metrics2 "github.com/elina-chertova/metrics-alerting.git/internal/storage/file_memory"
 	"github.com/levigross/grequests"
 	"sync"
 )
@@ -44,7 +45,7 @@ func formJSON(metricName string, value any, typeMetric string) f.Metric {
 	var metrics f.Metric
 
 	switch typeMetric {
-	case metrics2.Gauge:
+	case storage.Gauge:
 		var v float64
 		switch value := value.(type) {
 		case int64:
@@ -56,10 +57,10 @@ func formJSON(metricName string, value any, typeMetric string) f.Metric {
 		}
 		metrics = f.Metric{
 			ID:    metricName,
-			MType: metrics2.Gauge,
+			MType: storage.Gauge,
 			Value: &v,
 		}
-	case metrics2.Counter:
+	case storage.Counter:
 		var delta int64
 		switch value := value.(type) {
 		case int64:
@@ -71,7 +72,7 @@ func formJSON(metricName string, value any, typeMetric string) f.Metric {
 		}
 		metrics = f.Metric{
 			ID:    metricName,
-			MType: metrics2.Counter,
+			MType: storage.Counter,
 			Delta: &delta,
 		}
 	default:
@@ -88,7 +89,7 @@ func metricsToServerAppJSON(s *metrics2.MemStorage, url string, isCompress bool)
 		wg.Add(1)
 		go func(metricName string, metricValue float64) {
 			defer wg.Done()
-			metrics := formJSON(metricName, metricValue, metrics2.Gauge)
+			metrics := formJSON(metricName, metricValue, storage.Gauge)
 			out, err := json.Marshal(metrics)
 			if err != nil {
 				fmt.Printf("error creating JSON: %v\n", err)
@@ -103,7 +104,7 @@ func metricsToServerAppJSON(s *metrics2.MemStorage, url string, isCompress bool)
 		wg.Add(1)
 		go func(metricName string, metricValue int64) {
 			defer wg.Done()
-			metrics := formJSON(metricName, metricValue, metrics2.Counter)
+			metrics := formJSON(metricName, metricValue, storage.Counter)
 			out, err := json.Marshal(metrics)
 
 			if err != nil {

@@ -1,7 +1,8 @@
-package metrics
+package file_memory
 
 import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -88,8 +89,8 @@ func (s *MemStorage) GetMetrics() (map[string]int64, map[string]float64) {
 
 func generateCombinedData(s *MemStorage) map[string]interface{} {
 	return map[string]interface{}{
-		Gauge:   s.Gauge,
-		Counter: s.Counter,
+		storage.Gauge:   s.Gauge,
+		storage.Counter: s.Counter,
 	}
 }
 

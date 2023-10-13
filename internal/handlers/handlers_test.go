@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"github.com/elina-chertova/metrics-alerting.git/internal/storage/metrics"
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage/file_memory"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -52,7 +52,7 @@ func TestMetricsHandler(t *testing.T) {
 		t.Run(
 			tt.name, func(t *testing.T) {
 				router := gin.Default()
-				st := metrics.NewMemStorage(false, nil)
+				st := file_memory.NewMemStorage(false, nil)
 				h := NewHandler(st)
 				router.POST(
 					"/update/:metricType/:metricName/:metricValue",

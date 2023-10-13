@@ -6,8 +6,9 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/handlers"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
-	"github.com/elina-chertova/metrics-alerting.git/internal/storage/metrics"
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage/file_memory"
 	"github.com/gin-gonic/gin"
+
 	"net/http"
 )
 
@@ -21,14 +22,20 @@ func run() error {
 	serverConfig := config.NewServer()
 	logger.LogInit("info")
 	router := gin.Default()
+
 	router.Use(logger.RequestLogger())
 	router.Use(compression.GzipHandle())
+	var h *handlers.Handler
 
-	connection := db.Connect(serverConfig.DatabaseDSN)
-	router.GET("/ping", db.PingDB(connection))
+	if serverConfig.DatabaseDSN != "" {
+		connection := db.Connect(serverConfig.DatabaseDSN)
+		router.GET("/ping", connection.PingDB())
+		h = handlers.NewHandler(connection)
+	} else {
+		s := file_memory.NewMemStorage(true, serverConfig)
+		h = handlers.NewHandler(s)
+	}
 
-	s := metrics.NewMemStorage(true, serverConfig)
-	h := handlers.NewHandler(s)
 	router.POST("/update/", h.MetricsJSONHandler())
 	router.POST("/update/:metricType/:metricName/:metricValue", h.MetricsTextPlainHandler())
 	router.GET("/value/:metricType/:metricName", h.GetMetricsTextPlainHandler())
