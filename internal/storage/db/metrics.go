@@ -174,7 +174,7 @@ func (db DB) InsertBatchMetrics(metrics []f.Metric) error {
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("transaction commit error: %v\n", err)
+		return fmt.Errorf("transaction commit error: %v", err)
 	}
 	return nil
 }

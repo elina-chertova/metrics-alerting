@@ -46,6 +46,7 @@ func (h *Handler) UpdateBatchMetrics() gin.HandlerFunc {
 		err = h.memStorage.InsertBatchMetrics(m)
 		if err != nil {
 			c.String(http.StatusInternalServerError, "Failed data insert")
+			return
 		}
 
 		c.Writer.WriteHeader(http.StatusOK)
