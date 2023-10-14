@@ -7,7 +7,6 @@ import (
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	fm "github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"gorm.io/gorm"
-	//"strings"
 )
 
 func TypeIsCounter(db *gorm.DB) *gorm.DB {
