@@ -93,7 +93,7 @@ func metricsToServerAppJSON(s *metrics2.MemStorage, url string, isCompress bool)
 		wg.Add(1)
 		go func(metricName string, metricValue float64) {
 			defer wg.Done()
-			metrics, err := formJSON(metricName, metricValue, config.Gauge)
+			metrics, _ := formJSON(metricName, metricValue, config.Gauge)
 			out, err := json.Marshal(metrics)
 			if err != nil {
 				fmt.Printf("error creating JSON: %v\n", err)
@@ -109,7 +109,7 @@ func metricsToServerAppJSON(s *metrics2.MemStorage, url string, isCompress bool)
 		wg.Add(1)
 		go func(metricName string, metricValue int64) {
 			defer wg.Done()
-			metrics, err := formJSON(metricName, metricValue, config.Counter)
+			metrics, _ := formJSON(metricName, metricValue, config.Counter)
 			out, err := json.Marshal(metrics)
 
 			if err != nil {

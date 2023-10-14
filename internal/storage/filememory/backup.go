@@ -21,19 +21,18 @@ func (s *MemStorage) backup(fileName string) {
 	combinedData := generateCombinedData(s)
 	data, err := json.MarshalIndent(combinedData, "", "   ")
 	if err != nil {
-		fmt.Printf(BackupError{Err: err, Message: "failed to marshal data"}.Error())
+		fmt.Print(BackupError{Err: err, Message: "failed to marshal data"}.Error())
 	}
 
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
 		dir := filepath.Dir(fileName)
 		if err := os.MkdirAll(dir, 0777); err != nil {
-			fmt.Printf(BackupError{Err: err, Message: "failed to create directory"}.Error())
+			fmt.Print(BackupError{Err: err, Message: "failed to create directory"}.Error())
 		}
 	}
 
 	err = os.WriteFile(fileName, data, 0666)
 	if err != nil {
-		fmt.Printf(BackupError{Err: err, Message: "failed to write data"}.Error())
+		fmt.Print(BackupError{Err: err, Message: "failed to write data"}.Error())
 	}
-
 }

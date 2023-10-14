@@ -20,11 +20,11 @@ func (s *MemStorage) load(fileName string) {
 	combinedData := generateCombinedData(s)
 	dataNew, err := os.ReadFile(fileName)
 	if err != nil {
-		fmt.Printf(LoadError{Err: err, Message: "failed to read data from file"}.Error())
+		fmt.Print(LoadError{Err: err, Message: "failed to read data from file"}.Error())
 	}
 
 	if err := json.Unmarshal(dataNew, &combinedData); err != nil {
-		fmt.Printf(LoadError{Err: err, Message: "failed to unmarshal JSON"}.Error())
+		fmt.Print(LoadError{Err: err, Message: "failed to unmarshal JSON"}.Error())
 	}
 	s.updateBackupMap(combinedData)
 }
