@@ -1,10 +1,9 @@
 package filememory
 
 import (
+	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
-	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
-	"math/rand"
-	"runtime"
+	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"sync"
 	"time"
 )
@@ -87,49 +86,13 @@ func (s *MemStorage) GetMetrics() (map[string]int64, map[string]float64) {
 	return s.Counter, s.Gauge
 }
 
-func generateCombinedData(s *MemStorage) map[string]interface{} {
-	return map[string]interface{}{
-		storage.Gauge:   s.Gauge,
-		storage.Counter: s.Counter,
-	}
+func (s *MemStorage) InsertBatchMetrics(metrics []f.Metric) error {
+	return fmt.Errorf("method not allowed for this storage")
 }
 
-func ExtractMetrics(s *MemStorage) {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
-	generator := rand.New(rand.NewSource(time.Now().UnixNano()))
-	metricsGauge := map[string]float64{
-		"Alloc":         float64(m.Alloc),
-		"TotalAlloc":    float64(m.TotalAlloc),
-		"Sys":           float64(m.Sys),
-		"Lookups":       float64(m.Lookups),
-		"Mallocs":       float64(m.Mallocs),
-		"Frees":         float64(m.Frees),
-		"HeapAlloc":     float64(m.HeapAlloc),
-		"HeapSys":       float64(m.HeapSys),
-		"HeapIdle":      float64(m.HeapIdle),
-		"HeapInuse":     float64(m.HeapInuse),
-		"HeapReleased":  float64(m.HeapReleased),
-		"HeapObjects":   float64(m.HeapObjects),
-		"StackInuse":    float64(m.StackInuse),
-		"StackSys":      float64(m.StackSys),
-		"MSpanInuse":    float64(m.MSpanInuse),
-		"MSpanSys":      float64(m.MSpanSys),
-		"MCacheInuse":   float64(m.MCacheInuse),
-		"MCacheSys":     float64(m.MCacheSys),
-		"BuckHashSys":   float64(m.BuckHashSys),
-		"GCSys":         float64(m.GCSys),
-		"OtherSys":      float64(m.OtherSys),
-		"NextGC":        float64(m.NextGC),
-		"LastGC":        float64(m.LastGC),
-		"PauseTotalNs":  float64(m.PauseTotalNs),
-		"NumGC":         float64(m.NumGC),
-		"NumForcedGC":   float64(m.NumForcedGC),
-		"GCCPUFraction": float64(m.GCCPUFraction),
-		"RandomValue":   generator.Float64(),
+func generateCombinedData(s *MemStorage) map[string]interface{} {
+	return map[string]interface{}{
+		config.Gauge:   s.Gauge,
+		config.Counter: s.Counter,
 	}
-	for name, value := range metricsGauge {
-		s.UpdateGauge(name, value)
-	}
-	s.UpdateCounter("PollCount", 1, true)
 }

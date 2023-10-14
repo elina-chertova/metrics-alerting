@@ -2,7 +2,7 @@ package filememory
 
 import (
 	"fmt"
-	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
+	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/goccy/go-json"
 	"os"
 )
@@ -23,7 +23,7 @@ func (s *MemStorage) load(fileName string) {
 func (s *MemStorage) updateBackupMap(combinedData map[string]interface{}) {
 	for key, value := range combinedData {
 		switch key {
-		case storage.Gauge:
+		case config.Gauge:
 			if gaugeData, ok := value.(map[string]interface{}); ok {
 				gauge := make(map[string]float64)
 				for k, v := range gaugeData {
@@ -34,7 +34,7 @@ func (s *MemStorage) updateBackupMap(combinedData map[string]interface{}) {
 				s.Gauge = gauge
 			}
 
-		case storage.Counter:
+		case config.Counter:
 			if counterData, ok := value.(map[string]interface{}); ok {
 				counter := make(map[string]int64)
 				for k, v := range counterData {
