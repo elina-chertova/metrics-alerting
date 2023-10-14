@@ -15,7 +15,7 @@ func main() {
 
 	flagContentType := "application/json"
 	isCompress := true
-	isSendBatch := false
+	isSendBatch := true
 	if isSendBatch {
 		urlUpdate = "http://" + agentConfig.FlagAddress + "/updates"
 	} else {
