@@ -21,13 +21,13 @@ func ParseServerFlags(s *Server) {
 		&s.FileStoragePath,
 		"f",
 		"tmp/metrics-db.json",
-		"temp file to save filememory",
+		"temp file to save metrics",
 	)
 	flag.BoolVar(&s.FlagRestore, "r", true, "is load saved filememory during server start")
 	flag.StringVar(
 		&s.DatabaseDSN,
 		"d",
-		"postgres://postgres:123qwe@localhost:5432/metrics_db",
+		"",
 		"Database DSN. Ex: postgres://postgres:123qwe@localhost:5432/metrics_db",
 	)
 
