@@ -3,16 +3,38 @@ package request
 import (
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/levigross/grequests"
 )
 
+var (
+	ErrHTTPRequestCreation   = errors.New("error creating HTTP request")
+	ErrHTTPRequestFailed     = errors.New("HTTP request failed")
+	ErrCompressData          = errors.New("error compressing data")
+	ErrUnsupportedValueType  = errors.New("unsupported value type")
+	ErrUnsupportedMetricType = errors.New("unsupported metric type")
+)
+
+type RetryableError struct {
+	Err error
+}
+
+func (e RetryableError) Error() string {
+	return fmt.Sprintf("retryable error: %v", e.Err)
+}
+
+func (e RetryableError) Retryable() bool {
+	return true
+}
+
 func sendRequest(contentType string, isCompress bool, url string, jsonBody []byte) error {
 	var ro *grequests.RequestOptions
 	if isCompress {
 		compressedData := compressData(jsonBody)
+
 		ro = &grequests.RequestOptions{
 			Headers: map[string]string{
 				"Content-Type":     contentType,
@@ -28,16 +50,19 @@ func sendRequest(contentType string, isCompress bool, url string, jsonBody []byt
 	}
 
 	resp, err := grequests.Post(url, ro)
-
 	if err != nil {
-		return fmt.Errorf("error creating HTTP request: %v", err)
+		return RetryableError{Err: ErrHTTPRequestCreation}
 	}
 	defer resp.Close()
-
 	if !resp.Ok {
-		return fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
+		return RetryableError{
+			Err: fmt.Errorf(
+				"%w with status code %d",
+				ErrHTTPRequestFailed,
+				resp.StatusCode,
+			),
+		}
 	}
-
 	return nil
 }
 
@@ -47,13 +72,13 @@ func compressData(data []byte) bytes.Buffer {
 
 	_, err := gzipWriter.Write(data)
 	if err != nil {
-		_ = fmt.Errorf("error compressing data: %v", err)
+		fmt.Printf("error compressing data %s", ErrCompressData.Error())
 	}
 	gzipWriter.Close()
 	return compressedBuffer
 }
 
-func formJSON(metricName string, value any, typeMetric string) f.Metric {
+func formJSON(metricName string, value interface{}, typeMetric string) (f.Metric, error) {
 	var metrics f.Metric
 
 	switch typeMetric {
@@ -65,7 +90,7 @@ func formJSON(metricName string, value any, typeMetric string) f.Metric {
 		case float64:
 			v = value
 		default:
-			_ = fmt.Errorf("unsupported value type: %T", value)
+			return f.Metric{}, ErrUnsupportedValueType
 		}
 		metrics = f.Metric{
 			ID:    metricName,
@@ -80,7 +105,7 @@ func formJSON(metricName string, value any, typeMetric string) f.Metric {
 		case float64:
 			delta = int64(value)
 		default:
-			_ = fmt.Errorf("unsupported value type: %T", value)
+			return f.Metric{}, ErrUnsupportedValueType
 		}
 		metrics = f.Metric{
 			ID:    metricName,
@@ -88,8 +113,8 @@ func formJSON(metricName string, value any, typeMetric string) f.Metric {
 			Delta: &delta,
 		}
 	default:
-		_ = fmt.Errorf("unsupported metric type: %s", typeMetric)
+		return f.Metric{}, ErrUnsupportedMetricType
 	}
 
-	return metrics
+	return metrics, nil
 }

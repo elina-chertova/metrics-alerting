@@ -1,9 +1,9 @@
 package logger
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -14,7 +14,8 @@ var Log *zap.Logger
 func LogInit(level string) {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
-		_ = fmt.Errorf("error parsing logger level %v", err)
+		log.Printf("Error parsing logger level: %v", err)
+		return
 	}
 	logger := zap.Must(zap.NewProduction())
 	defer logger.Sync()

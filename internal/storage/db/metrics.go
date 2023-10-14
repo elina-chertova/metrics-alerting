@@ -9,6 +9,13 @@ import (
 	"gorm.io/gorm"
 )
 
+var (
+	ErrRetrieveMetric    = errors.New("failed to retrieve metric")
+	ErrSaveMetric        = errors.New("failed to save metric")
+	ErrCreateMetric      = errors.New("failed to create metric")
+	ErrCommitTransaction = errors.New("transaction commit error")
+)
+
 func TypeIsCounter(db *gorm.DB) *gorm.DB {
 	return db.Where("type = ?", s.Counter)
 }
@@ -22,14 +29,16 @@ func (db DB) UpdateCounter(name string, value int64, ok bool) {
 	if ok {
 		result := db.db.Scopes(TypeIsCounter).Where("name = ?", name).Order("").First(&m)
 		if result.Error != nil {
-			_ = fmt.Errorf("failed to retrieve metric: " + result.Error.Error())
+			fmt.Printf("%s: %v\n", ErrRetrieveMetric, result.Error)
 		}
 
 		m.Delta += value
 
 		result = db.db.Save(&m)
 		if result.Error != nil {
-			_ = fmt.Errorf("failed to save metric: " + result.Error.Error())
+			if result.Error != nil {
+				fmt.Printf("%s: %v\n", ErrSaveMetric, result.Error)
+			}
 		}
 		return
 	}
@@ -41,7 +50,7 @@ func (db DB) UpdateCounter(name string, value int64, ok bool) {
 		},
 	)
 	if data.Error != nil {
-		_ = fmt.Errorf("failed to create metric: " + data.Error.Error())
+		fmt.Printf("%s: %v\n", ErrCreateMetric, data.Error)
 	}
 }
 
@@ -51,7 +60,7 @@ func (db DB) UpdateGauge(name string, value float64) {
 	if result := db.db.Scopes(TypeIsGauge).Where(
 		"name = ?",
 		name,
-	).Order("").First(&m); result.Error != nil {
+	).Order("").First(&m); errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		data := db.db.Create(
 			&Metrics{
 				Name:  name,
@@ -60,7 +69,7 @@ func (db DB) UpdateGauge(name string, value float64) {
 			},
 		)
 		if data.Error != nil {
-			_ = fmt.Errorf("failed to create metric: " + data.Error.Error())
+			fmt.Printf("%s: %v\n", ErrCreateMetric, data.Error)
 		}
 		return
 	}
@@ -68,14 +77,14 @@ func (db DB) UpdateGauge(name string, value float64) {
 
 	result := db.db.Save(&m)
 	if result.Error != nil {
-		_ = fmt.Errorf("failed to save metric: " + result.Error.Error())
+		fmt.Printf("%s: %v\n", ErrSaveMetric, result.Error)
 	}
 }
 
 func (db DB) GetCounter(name string) (int64, bool) {
 	var m Metrics
 	result := db.db.Scopes(TypeIsCounter).Where("name = ?", name).Order("").First(&m)
-	if result.Error != nil {
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return 0, false
 	}
 	return m.Delta, true
@@ -84,7 +93,7 @@ func (db DB) GetCounter(name string) (int64, bool) {
 func (db DB) GetGauge(name string) (float64, bool) {
 	var m Metrics
 	result := db.db.Scopes(TypeIsGauge).Where("name = ?", name).Order("").First(&m)
-	if result.Error != nil {
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return 0, false
 	}
 	return m.Value, true
@@ -156,7 +165,7 @@ func (db DB) InsertBatchMetrics(metrics []f.Metric) error {
 				)
 			}
 			if data.Error != nil {
-				fmt.Printf("failed to create metric: %v\n", data.Error)
+				fmt.Printf("%s: %v\n", ErrCreateMetric, data.Error)
 			}
 		} else {
 			var result *gorm.DB
@@ -168,13 +177,13 @@ func (db DB) InsertBatchMetrics(metrics []f.Metric) error {
 			}
 			result = tx.Save(&m)
 			if result.Error != nil {
-				fmt.Printf("failed to save metric: %v\n", result.Error)
+				fmt.Printf("%s: %v\n", ErrSaveMetric, result.Error)
 			}
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("transaction commit error: %v", err)
+		return fmt.Errorf("%s: %v\n", ErrCommitTransaction, err)
 	}
 	return nil
 }

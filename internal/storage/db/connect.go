@@ -27,18 +27,12 @@ func (db *DB) PingDB() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		sqlDB, err := db.db.DB()
 		if err != nil {
-			c.JSON(
-				http.StatusInternalServerError,
-				gin.H{"message": "Database connection error"},
-			)
+			handleDBError(c, "failed to get database connection", err)
 			return
 		}
 
 		if err := sqlDB.Ping(); err != nil {
-			c.JSON(
-				http.StatusInternalServerError,
-				gin.H{"message": "Database connection error"},
-			)
+			handleDBError(c, "failed to ping the database", err)
 			return
 		}
 
@@ -47,4 +41,9 @@ func (db *DB) PingDB() gin.HandlerFunc {
 			gin.H{"message": "Successfully connected to the database and pinged it"},
 		)
 	}
+}
+
+func handleDBError(c *gin.Context, message string, err error) {
+	log.Printf("%s: %v", message, err)
+	c.JSON(http.StatusInternalServerError, gin.H{"error": message})
 }

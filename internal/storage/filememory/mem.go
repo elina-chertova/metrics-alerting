@@ -1,6 +1,7 @@
 package filememory
 
 import (
+	"errors"
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
@@ -86,8 +87,10 @@ func (s *MemStorage) GetMetrics() (map[string]int64, map[string]float64) {
 	return s.Counter, s.Gauge
 }
 
+var ErrNotAllowed = errors.New("method not allowed")
+
 func (s *MemStorage) InsertBatchMetrics(metrics []f.Metric) error {
-	return fmt.Errorf("method not allowed for this storage")
+	return fmt.Errorf("%w", ErrNotAllowed)
 }
 
 func generateCombinedData(s *MemStorage) map[string]interface{} {

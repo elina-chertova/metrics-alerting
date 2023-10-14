@@ -8,23 +8,32 @@ import (
 	"path/filepath"
 )
 
+type BackupError struct {
+	Message string
+	Err     error
+}
+
+func (e BackupError) Error() string {
+	return fmt.Sprintf("%s: %v", e.Message, e.Err)
+}
+
 func (s *MemStorage) backup(fileName string) {
 	combinedData := generateCombinedData(s)
 	data, err := json.MarshalIndent(combinedData, "", "   ")
 	if err != nil {
-		fmt.Printf("error MarshalIndent: %v\n", err)
+		fmt.Printf(BackupError{Err: err, Message: "failed to marshal data"}.Error())
 	}
 
 	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
 		dir := filepath.Dir(fileName)
 		if err := os.MkdirAll(dir, 0777); err != nil {
-			fmt.Printf("error creating file: %v\n", err)
+			fmt.Printf(BackupError{Err: err, Message: "failed to create directory"}.Error())
 		}
 	}
 
 	err = os.WriteFile(fileName, data, 0666)
 	if err != nil {
-		fmt.Printf("error creating JSON: %v\n", err)
+		fmt.Printf(BackupError{Err: err, Message: "failed to write data"}.Error())
 	}
 
 }

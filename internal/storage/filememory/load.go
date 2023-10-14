@@ -7,15 +7,24 @@ import (
 	"os"
 )
 
+type LoadError struct {
+	Message string
+	Err     error
+}
+
+func (e LoadError) Error() string {
+	return fmt.Sprintf("%s: %v", e.Message, e.Err)
+}
+
 func (s *MemStorage) load(fileName string) {
 	combinedData := generateCombinedData(s)
 	dataNew, err := os.ReadFile(fileName)
 	if err != nil {
-		fmt.Printf("error reading JSON: %v\n", err)
+		fmt.Printf(LoadError{Err: err, Message: "failed to read data from file"}.Error())
 	}
 
 	if err := json.Unmarshal(dataNew, &combinedData); err != nil {
-		fmt.Printf("error Unmarshal JSON: %v\n", err)
+		fmt.Printf(LoadError{Err: err, Message: "failed to unmarshal JSON"}.Error())
 	}
 	s.updateBackupMap(combinedData)
 }
