@@ -27,7 +27,7 @@ func ParseServerFlags(s *Server) {
 	flag.StringVar(
 		&s.DatabaseDSN,
 		"d",
-		"",
+		"postgres://postgres:123qwe@localhost:5432/metrics_db",
 		"Database DSN. Ex: postgres://postgres:123qwe@localhost:5432/metrics_db",
 	)
 
