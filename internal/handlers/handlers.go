@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/gin-gonic/gin"
@@ -42,7 +43,7 @@ func (h *Handler) UpdateBatchMetrics() gin.HandlerFunc {
 			http.Error(c.Writer, "invalid JSON data", http.StatusBadRequest)
 			return
 		}
-
+		fmt.Println("met = ", m)
 		err = h.memStorage.InsertBatchMetrics(m)
 		if err != nil {
 			c.String(http.StatusInternalServerError, "Failed data insert")
