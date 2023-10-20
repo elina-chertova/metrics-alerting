@@ -280,10 +280,7 @@ func (h *Handler) MetricsJSONHandler() gin.HandlerFunc {
 
 func (h *Handler) MetricsTextPlainHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var (
-			err error
-			ok  bool
-		)
+		var ok bool
 		if err := c.Request.ParseForm(); err != nil {
 			c.Status(http.StatusBadRequest)
 			return
@@ -328,13 +325,8 @@ func (h *Handler) MetricsTextPlainHandler() gin.HandlerFunc {
 			c.Status(http.StatusBadRequest)
 			return
 		}
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
 
 		c.Header("Content-Type", "text/plain")
-
 		c.Status(http.StatusOK)
 	}
 }
