@@ -29,7 +29,7 @@ func (db DB) UpdateCounter(name string, value int64, ok bool) error {
 	if ok {
 		result := db.Database.Scopes(TypeIsCounter).Where("name = ?", name).Order("").First(&m)
 		if result.Error != nil {
-			fmt.Printf("%s: %v\n", ErrRetrieveMetric, result.Error)
+			fmt.Printf("%s: %v", ErrRetrieveMetric, result.Error)
 		}
 
 		m.Delta += value
@@ -37,7 +37,7 @@ func (db DB) UpdateCounter(name string, value int64, ok bool) error {
 		result = db.Database.Save(&m)
 
 		if result.Error != nil {
-			return fmt.Errorf("%s: %v\n", ErrSaveMetric, result.Error)
+			return fmt.Errorf("%s: %v", ErrSaveMetric, result.Error)
 		}
 
 		return nil
@@ -50,7 +50,7 @@ func (db DB) UpdateCounter(name string, value int64, ok bool) error {
 		},
 	)
 	if data.Error != nil {
-		return fmt.Errorf("%s: %v\n", ErrCreateMetric, data.Error)
+		return fmt.Errorf("%s: %v", ErrCreateMetric, data.Error)
 	}
 	return nil
 }
@@ -70,7 +70,7 @@ func (db DB) UpdateGauge(name string, value float64) error {
 			},
 		)
 		if data.Error != nil {
-			return fmt.Errorf("%s: %v\n", ErrCreateMetric, data.Error)
+			return fmt.Errorf("%s: %v", ErrCreateMetric, data.Error)
 		}
 		return nil
 	}
@@ -78,7 +78,7 @@ func (db DB) UpdateGauge(name string, value float64) error {
 
 	result := db.Database.Save(&m)
 	if result.Error != nil {
-		return fmt.Errorf("%s: %v\n", ErrSaveMetric, result.Error)
+		return fmt.Errorf("%s: %v", ErrSaveMetric, result.Error)
 	}
 	return nil
 }
@@ -167,7 +167,7 @@ func (db DB) InsertBatchMetrics(metrics []formatter.Metric) error {
 				)
 			}
 			if data.Error != nil {
-				fmt.Printf("%s: %v\n", ErrCreateMetric, data.Error)
+				fmt.Printf("%s: %v", ErrCreateMetric, data.Error)
 			}
 		} else {
 			var result *gorm.DB
@@ -179,7 +179,7 @@ func (db DB) InsertBatchMetrics(metrics []formatter.Metric) error {
 			}
 			result = tx.Save(&m)
 			if result.Error != nil {
-				fmt.Printf("%s: %v\n", ErrSaveMetric, result.Error)
+				fmt.Printf("%s: %v", ErrSaveMetric, result.Error)
 			}
 		}
 	}

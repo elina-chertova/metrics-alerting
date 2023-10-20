@@ -116,17 +116,22 @@ func (h *Handler) GetMetricsJSONHandler() gin.HandlerFunc {
 		case config.Counter:
 			val1, _, err = h.memStorage.GetCounter(m.ID)
 			metric = f.Metric{ID: m.ID, MType: config.Counter, Delta: &val1}
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
 		case config.Gauge:
 			val2, _, err = h.memStorage.GetGauge(m.ID)
 			metric = f.Metric{ID: m.ID, MType: config.Gauge, Value: &val2}
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": ErrUnsupportedMetric.Error()})
 			return
 		}
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
+
 		out, err := json.Marshal(metric)
 		if err != nil {
 			c.String(http.StatusInternalServerError, ErrFailedJSONCreating.Error())
@@ -156,7 +161,10 @@ func (h *Handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 				return
 			}
 			value, _, err = h.memStorage.GetGauge(metricName)
-
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
 		case config.Counter:
 			_, ok, err = h.memStorage.GetCounter(metricName)
 			if !ok {
@@ -164,15 +172,15 @@ func (h *Handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 				return
 			}
 			value, _, err = h.memStorage.GetCounter(metricName)
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": ErrUnsupportedMetric.Error()})
 			return
 		}
 
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
 		resp, err := json.Marshal(value)
 		if err != nil {
 			c.Status(http.StatusBadRequest)
@@ -217,6 +225,10 @@ func (h *Handler) MetricsJSONHandler() gin.HandlerFunc {
 
 			v1, _, err = h.memStorage.GetCounter(m.ID)
 			returnedMetric = f.Metric{ID: m.ID, MType: config.Counter, Delta: &v1}
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
 		case config.Gauge:
 			if m.Value == nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": ErrValueNil.Error()})
@@ -227,15 +239,15 @@ func (h *Handler) MetricsJSONHandler() gin.HandlerFunc {
 
 			v2, _, err = h.memStorage.GetGauge(m.ID)
 			returnedMetric = f.Metric{ID: m.ID, MType: config.Gauge, Value: &v2}
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": ErrUnsupportedMetric.Error()})
 			return
 		}
 
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
 		out, err := json.Marshal(returnedMetric)
 		if err != nil {
 			c.String(http.StatusInternalServerError, ErrFailedJSONCreating.Error())
@@ -269,6 +281,10 @@ func (h *Handler) MetricsTextPlainHandler() gin.HandlerFunc {
 		case config.Gauge:
 			if convertedMetricValueFloat, err := strconv.ParseFloat(metricValue, 64); err == nil {
 				err = h.memStorage.UpdateGauge(metricName, convertedMetricValueFloat)
+				if err != nil {
+					c.String(http.StatusInternalServerError, err.Error())
+					return
+				}
 			} else {
 				c.Status(http.StatusBadRequest)
 				return
@@ -277,6 +293,10 @@ func (h *Handler) MetricsTextPlainHandler() gin.HandlerFunc {
 			if convertedMetricValueInt, err := strconv.Atoi(metricValue); err == nil {
 				_, ok, err = h.memStorage.GetCounter(metricName)
 				err = h.memStorage.UpdateCounter(metricName, int64(convertedMetricValueInt), ok)
+				if err != nil {
+					c.String(http.StatusInternalServerError, err.Error())
+					return
+				}
 			} else {
 				c.Status(http.StatusBadRequest)
 				return
