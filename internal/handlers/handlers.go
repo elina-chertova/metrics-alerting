@@ -156,6 +156,10 @@ func (h *Handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 		switch metricType {
 		case config.Gauge:
 			_, ok, err = h.memStorage.GetGauge(metricName)
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
 			if !ok {
 				c.Status(http.StatusNotFound)
 				return
@@ -167,6 +171,10 @@ func (h *Handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 			}
 		case config.Counter:
 			_, ok, err = h.memStorage.GetCounter(metricName)
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
 			if !ok {
 				c.Status(http.StatusNotFound)
 				return
@@ -220,9 +228,16 @@ func (h *Handler) MetricsJSONHandler() gin.HandlerFunc {
 				return
 			}
 			_, ok, err = h.memStorage.GetCounter(m.ID)
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
 			var v1 = *m.Delta
 			err = h.memStorage.UpdateCounter(m.ID, v1, ok)
-
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
 			v1, _, err = h.memStorage.GetCounter(m.ID)
 			returnedMetric = f.Metric{ID: m.ID, MType: config.Counter, Delta: &v1}
 			if err != nil {
@@ -236,6 +251,10 @@ func (h *Handler) MetricsJSONHandler() gin.HandlerFunc {
 			}
 			var v2 = *m.Value
 			err = h.memStorage.UpdateGauge(m.ID, v2)
+			if err != nil {
+				c.String(http.StatusInternalServerError, err.Error())
+				return
+			}
 
 			v2, _, err = h.memStorage.GetGauge(m.ID)
 			returnedMetric = f.Metric{ID: m.ID, MType: config.Gauge, Value: &v2}
@@ -292,6 +311,10 @@ func (h *Handler) MetricsTextPlainHandler() gin.HandlerFunc {
 		case config.Counter:
 			if convertedMetricValueInt, err := strconv.Atoi(metricValue); err == nil {
 				_, ok, err = h.memStorage.GetCounter(metricName)
+				if err != nil {
+					c.String(http.StatusInternalServerError, err.Error())
+					return
+				}
 				err = h.memStorage.UpdateCounter(metricName, int64(convertedMetricValueInt), ok)
 				if err != nil {
 					c.String(http.StatusInternalServerError, err.Error())

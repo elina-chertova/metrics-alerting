@@ -7,7 +7,3 @@ import (
 func TestUpdateCounter(t *testing.T) {
 
 }
-
-func TestGetCounter(t *testing.T) {
-
-}
