@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
-	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
+	"github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"sync"
 	"time"
 )
@@ -35,61 +35,63 @@ func NewMemStorage(serverConfigEnable bool, configuration *config.Server) *MemSt
 	return s
 }
 
-func (s *MemStorage) LockCounter() {
+func (s *MemStorage) lockCounter() {
 	s.CounterMu.Lock()
 }
-func (s *MemStorage) LockGauge() {
+func (s *MemStorage) lockGauge() {
 	s.GaugeMu.Lock()
 }
 
-func (s *MemStorage) UnlockCounter() {
+func (s *MemStorage) unlockCounter() {
 	s.CounterMu.Unlock()
 }
-func (s *MemStorage) UnlockGauge() {
+func (s *MemStorage) unlockGauge() {
 	s.GaugeMu.Unlock()
 }
 
-func (s *MemStorage) UpdateCounter(name string, value int64, ok bool) {
-	s.LockCounter()
-	defer s.UnlockCounter()
+func (s *MemStorage) UpdateCounter(name string, value int64, ok bool) error {
+	s.lockCounter()
+	defer s.unlockCounter()
 	if ok {
 		s.Counter[name] += value
 	} else {
 		s.Counter[name] = value
 	}
+	return nil
 }
 
-func (s *MemStorage) UpdateGauge(name string, value float64) {
-	s.LockGauge()
-	defer s.UnlockGauge()
+func (s *MemStorage) UpdateGauge(name string, value float64) error {
+	s.lockGauge()
+	defer s.unlockGauge()
 	s.Gauge[name] = value
+	return nil
 }
 
-func (s *MemStorage) GetCounter(name string) (int64, bool) {
-	s.LockCounter()
-	defer s.UnlockCounter()
+func (s *MemStorage) GetCounter(name string) (int64, bool, error) {
+	s.lockCounter()
+	defer s.unlockCounter()
 	value, ok := s.Counter[name]
-	return value, ok
+	return value, ok, nil
 }
 
-func (s *MemStorage) GetGauge(name string) (float64, bool) {
-	s.LockGauge()
-	defer s.UnlockGauge()
+func (s *MemStorage) GetGauge(name string) (float64, bool, error) {
+	s.lockGauge()
+	defer s.unlockGauge()
 	value, ok := s.Gauge[name]
-	return value, ok
+	return value, ok, nil
 }
 
 func (s *MemStorage) GetMetrics() (map[string]int64, map[string]float64) {
-	s.LockGauge()
-	s.LockCounter()
-	defer s.UnlockGauge()
-	defer s.UnlockCounter()
+	s.lockGauge()
+	s.lockCounter()
+	defer s.unlockGauge()
+	defer s.unlockCounter()
 	return s.Counter, s.Gauge
 }
 
 var ErrNotAllowed = errors.New("method not allowed")
 
-func (s *MemStorage) InsertBatchMetrics(metrics []f.Metric) error {
+func (s *MemStorage) InsertBatchMetrics(metrics []formatter.Metric) error {
 	return fmt.Errorf("%w", ErrNotAllowed)
 }
 

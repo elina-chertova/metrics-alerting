@@ -4,14 +4,14 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	r "github.com/elina-chertova/metrics-alerting.git/internal/request"
 	st "github.com/elina-chertova/metrics-alerting.git/internal/storage"
-	f "github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"time"
 )
 
 func main() {
 	var urlUpdate string
 	agentConfig := config.NewAgent()
-	storage := f.NewMemStorage(false, nil)
+	storage := filememory.NewMemStorage(false, nil)
 
 	flagContentType := "application/json"
 	isCompress := true

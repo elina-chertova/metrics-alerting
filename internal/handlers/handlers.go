@@ -4,10 +4,12 @@ import (
 	"errors"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage/db"
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 	"html/template"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -21,10 +23,10 @@ var (
 )
 
 type metricsStorage interface {
-	UpdateCounter(name string, value int64, ok bool)
-	UpdateGauge(name string, value float64)
-	GetCounter(name string) (int64, bool)
-	GetGauge(name string) (float64, bool)
+	UpdateCounter(name string, value int64, ok bool) error
+	UpdateGauge(name string, value float64) error
+	GetCounter(name string) (int64, bool, error)
+	GetGauge(name string) (float64, bool, error)
 	GetMetrics() (map[string]int64, map[string]float64)
 	InsertBatchMetrics([]f.Metric) error
 }
@@ -101,6 +103,7 @@ func (h *Handler) MetricsListHandler() gin.HandlerFunc {
 func (h *Handler) GetMetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m f.Metric
+		var err error
 		if err := c.ShouldBindJSON(&m); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
@@ -111,18 +114,23 @@ func (h *Handler) GetMetricsJSONHandler() gin.HandlerFunc {
 
 		switch m.MType {
 		case config.Counter:
-			val1, _ = h.memStorage.GetCounter(m.ID)
+			val1, _, err = h.memStorage.GetCounter(m.ID)
 			metric = f.Metric{ID: m.ID, MType: config.Counter, Delta: &val1}
 		case config.Gauge:
-			val2, _ = h.memStorage.GetGauge(m.ID)
+			val2, _, err = h.memStorage.GetGauge(m.ID)
 			metric = f.Metric{ID: m.ID, MType: config.Gauge, Value: &val2}
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": ErrUnsupportedMetric.Error()})
 			return
 		}
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
 		out, err := json.Marshal(metric)
 		if err != nil {
 			c.String(http.StatusInternalServerError, ErrFailedJSONCreating.Error())
+			return
 		}
 		c.Writer.WriteHeader(http.StatusOK)
 		c.Writer.Header().Set("Content-Type", "application/json")
@@ -132,28 +140,39 @@ func (h *Handler) GetMetricsJSONHandler() gin.HandlerFunc {
 
 func (h *Handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var value any
+		var (
+			value any
+			err   error
+			ok    bool
+		)
 		metricType := c.Param("metricType")
 		metricName := c.Param("metricName")
 
 		switch metricType {
 		case config.Gauge:
-			_, ok := h.memStorage.GetGauge(metricName)
+			_, ok, err = h.memStorage.GetGauge(metricName)
 			if !ok {
 				c.Status(http.StatusNotFound)
 				return
 			}
-			value, _ = h.memStorage.GetGauge(metricName)
+			value, _, err = h.memStorage.GetGauge(metricName)
 
 		case config.Counter:
-			_, ok := h.memStorage.GetCounter(metricName)
+			_, ok, err = h.memStorage.GetCounter(metricName)
 			if !ok {
 				c.Status(http.StatusNotFound)
 				return
 			}
-			value, _ = h.memStorage.GetCounter(metricName)
+			value, _, err = h.memStorage.GetCounter(metricName)
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"error": ErrUnsupportedMetric.Error()})
+			return
 		}
 
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
 		resp, err := json.Marshal(value)
 		if err != nil {
 			c.Status(http.StatusBadRequest)
@@ -167,7 +186,11 @@ func (h *Handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 
 func (h *Handler) MetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var m f.Metric
+		var (
+			m   f.Metric
+			err error
+			ok  bool
+		)
 		var reader io.Reader = c.Request.Body
 		body, err := io.ReadAll(reader)
 		if err != nil {
@@ -188,11 +211,11 @@ func (h *Handler) MetricsJSONHandler() gin.HandlerFunc {
 				c.JSON(http.StatusBadRequest, gin.H{"error": ErrDeltaNil.Error()})
 				return
 			}
-			_, ok := h.memStorage.GetCounter(m.ID)
+			_, ok, err = h.memStorage.GetCounter(m.ID)
 			var v1 = *m.Delta
-			h.memStorage.UpdateCounter(m.ID, v1, ok)
+			err = h.memStorage.UpdateCounter(m.ID, v1, ok)
 
-			v1, _ = h.memStorage.GetCounter(m.ID)
+			v1, _, err = h.memStorage.GetCounter(m.ID)
 			returnedMetric = f.Metric{ID: m.ID, MType: config.Counter, Delta: &v1}
 		case config.Gauge:
 			if m.Value == nil {
@@ -200,18 +223,24 @@ func (h *Handler) MetricsJSONHandler() gin.HandlerFunc {
 				return
 			}
 			var v2 = *m.Value
-			h.memStorage.UpdateGauge(m.ID, v2)
+			err = h.memStorage.UpdateGauge(m.ID, v2)
 
-			v2, _ = h.memStorage.GetGauge(m.ID)
+			v2, _, err = h.memStorage.GetGauge(m.ID)
 			returnedMetric = f.Metric{ID: m.ID, MType: config.Gauge, Value: &v2}
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": ErrUnsupportedMetric.Error()})
+			return
+		}
+
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
 			return
 		}
 		out, err := json.Marshal(returnedMetric)
 		if err != nil {
 			c.String(http.StatusInternalServerError, ErrFailedJSONCreating.Error())
 		}
+
 		c.Writer.WriteHeader(http.StatusOK)
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.Writer.Write(out)
@@ -220,7 +249,10 @@ func (h *Handler) MetricsJSONHandler() gin.HandlerFunc {
 
 func (h *Handler) MetricsTextPlainHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
+		var (
+			err error
+			ok  bool
+		)
 		if err := c.Request.ParseForm(); err != nil {
 			c.Status(http.StatusBadRequest)
 			return
@@ -236,15 +268,15 @@ func (h *Handler) MetricsTextPlainHandler() gin.HandlerFunc {
 		switch metricType {
 		case config.Gauge:
 			if convertedMetricValueFloat, err := strconv.ParseFloat(metricValue, 64); err == nil {
-				h.memStorage.UpdateGauge(metricName, convertedMetricValueFloat)
+				err = h.memStorage.UpdateGauge(metricName, convertedMetricValueFloat)
 			} else {
 				c.Status(http.StatusBadRequest)
 				return
 			}
 		case config.Counter:
 			if convertedMetricValueInt, err := strconv.Atoi(metricValue); err == nil {
-				_, ok := h.memStorage.GetCounter(metricName)
-				h.memStorage.UpdateCounter(metricName, int64(convertedMetricValueInt), ok)
+				_, ok, err = h.memStorage.GetCounter(metricName)
+				err = h.memStorage.UpdateCounter(metricName, int64(convertedMetricValueInt), ok)
 			} else {
 				c.Status(http.StatusBadRequest)
 				return
@@ -253,8 +285,46 @@ func (h *Handler) MetricsTextPlainHandler() gin.HandlerFunc {
 			c.Status(http.StatusBadRequest)
 			return
 		}
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
 		c.Header("Content-Type", "text/plain")
 
 		c.Status(http.StatusOK)
 	}
+}
+
+type Database struct {
+	db *db.DB
+}
+
+func NewDatabase(d *db.DB) *Database {
+	return &Database{db: d}
+}
+
+func (db *Database) PingDB() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		sqlDB, err := db.db.Database.DB()
+		if err != nil {
+			handleDBError(c, "failed to get database connection", err)
+			return
+		}
+
+		if err := sqlDB.Ping(); err != nil {
+			handleDBError(c, "failed to ping the database", err)
+			return
+		}
+
+		c.JSON(
+			http.StatusOK,
+			gin.H{"message": "Successfully connected to the database and pinged it"},
+		)
+	}
+}
+
+func handleDBError(c *gin.Context, message string, err error) {
+	log.Printf("%s: %v", message, err)
+	c.JSON(http.StatusInternalServerError, gin.H{"error": message})
 }

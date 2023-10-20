@@ -29,8 +29,9 @@ func run() error {
 
 	if serverConfig.DatabaseDSN != "" {
 		connection := db.Connect(serverConfig.DatabaseDSN)
-		router.GET("/ping", connection.PingDB())
+		database := handlers.NewDatabase(connection)
 		h = handlers.NewHandler(connection)
+		router.GET("/ping", database.PingDB())
 	} else {
 		s := filememory.NewMemStorage(true, serverConfig)
 		h = handlers.NewHandler(s)

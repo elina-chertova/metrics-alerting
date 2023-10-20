@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
-	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
+	"github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/levigross/grequests"
 )
 
@@ -78,8 +78,8 @@ func compressData(data []byte) bytes.Buffer {
 	return compressedBuffer
 }
 
-func formJSON(metricName string, value interface{}, typeMetric string) (f.Metric, error) {
-	var metrics f.Metric
+func formJSON(metricName string, value interface{}, typeMetric string) (formatter.Metric, error) {
+	var metrics formatter.Metric
 
 	switch typeMetric {
 	case config.Gauge:
@@ -90,9 +90,9 @@ func formJSON(metricName string, value interface{}, typeMetric string) (f.Metric
 		case float64:
 			v = value
 		default:
-			return f.Metric{}, ErrUnsupportedValueType
+			return formatter.Metric{}, ErrUnsupportedValueType
 		}
-		metrics = f.Metric{
+		metrics = formatter.Metric{
 			ID:    metricName,
 			MType: config.Gauge,
 			Value: &v,
@@ -105,15 +105,15 @@ func formJSON(metricName string, value interface{}, typeMetric string) (f.Metric
 		case float64:
 			delta = int64(value)
 		default:
-			return f.Metric{}, ErrUnsupportedValueType
+			return formatter.Metric{}, ErrUnsupportedValueType
 		}
-		metrics = f.Metric{
+		metrics = formatter.Metric{
 			ID:    metricName,
 			MType: config.Counter,
 			Delta: &delta,
 		}
 	default:
-		return f.Metric{}, ErrUnsupportedMetricType
+		return formatter.Metric{}, ErrUnsupportedMetricType
 	}
 
 	return metrics, nil

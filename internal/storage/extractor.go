@@ -1,13 +1,13 @@
 package storage
 
 import (
-	f "github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"math/rand"
 	"runtime"
 	"time"
 )
 
-func ExtractMetrics(s *f.MemStorage) {
+func ExtractMetrics(s *filememory.MemStorage) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	generator := rand.New(rand.NewSource(time.Now().UnixNano()))
