@@ -25,6 +25,14 @@ func LogInit(level string) {
 	Log = zl
 }
 
+func Info(message string, fields ...zap.Field) {
+	Log.Info(message, fields...)
+}
+
+func Error(message string, fields ...zap.Field) {
+	Log.Error(message, fields...)
+}
+
 func RequestLogger() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		t := time.Now()
@@ -36,7 +44,7 @@ func RequestLogger() gin.HandlerFunc {
 			size = c.Writer.Size()
 		}
 		latency := time.Since(t)
-		Log.Info(
+		Info(
 			"got HTTP request info",
 			zap.String("method", c.Request.Method),
 			zap.String("path", c.Request.RequestURI),
