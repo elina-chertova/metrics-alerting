@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var Log *zap.Logger
+var Log *zap.Logger = zap.NewNop()
 
 func LogInit(level string) {
 	lvl, err := zap.ParseAtomicLevel(level)

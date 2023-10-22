@@ -348,13 +348,22 @@ func (h *Handler) MetricsTextPlainHandler() gin.HandlerFunc {
 					return
 				}
 			} else {
-				logger.Error(err.Error(), zap.String("method", c.Request.Method))
+				logger.Error(
+					err.Error(),
+					zap.String("method", c.Request.Method),
+					zap.Int("status", http.StatusBadRequest),
+				)
 				c.Status(http.StatusBadRequest)
 				return
 			}
 		default:
-			logger.Error(ErrUnsupportedMetric.Error(), zap.String("method", c.Request.Method))
+			logger.Error(
+				ErrUnsupportedMetric.Error(),
+				zap.String("method", c.Request.Method),
+				zap.Int("status", http.StatusBadRequest),
+			)
 			c.Status(http.StatusBadRequest)
+
 			return
 		}
 
