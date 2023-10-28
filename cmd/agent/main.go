@@ -11,12 +11,10 @@ import (
 func main() {
 	var urlUpdate string
 	agentConfig := config.NewAgent()
+	settings := config.NewSettings()
 	storage := filememory.NewMemStorage(false, nil)
 
-	flagContentType := "application/json"
-	isCompress := true
-	isSendBatch := false
-	if isSendBatch {
+	if settings.IsSendBatch {
 		urlUpdate = "http://" + agentConfig.FlagAddress + "/updates"
 	} else {
 		urlUpdate = "http://" + agentConfig.FlagAddress + "/update"
@@ -31,7 +29,14 @@ func main() {
 	go func() {
 		for {
 			time.Sleep(time.Duration(agentConfig.ReportInterval) * time.Second)
-			r.MetricsToServer(storage, flagContentType, urlUpdate, isCompress, isSendBatch)
+			r.MetricsToServer(
+				storage,
+				settings.FlagContentType,
+				urlUpdate,
+				settings.IsCompress,
+				settings.IsSendBatch,
+				agentConfig.SecretKey,
+			)
 		}
 	}()
 

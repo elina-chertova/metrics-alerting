@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/formatter"
+	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/security"
 	"github.com/levigross/grequests"
 )
 
@@ -30,21 +31,34 @@ func (e RetryableError) Retryable() bool {
 	return true
 }
 
-func sendRequest(contentType string, isCompress bool, url string, jsonBody []byte) error {
+func sendRequest(
+	contentType string,
+	isCompress bool,
+	url string,
+	jsonBody []byte,
+	secretKey string,
+) error {
 	var ro *grequests.RequestOptions
+	var headers map[string]string
+
+	headers = make(map[string]string)
+	headers["Content-Type"] = contentType
+
+	if secretKey != "" {
+		hashBody := security.Hash(string(jsonBody), []byte(secretKey))
+		headers["HashSHA256"] = hashBody
+	}
+
 	if isCompress {
 		compressedData := compressData(jsonBody)
-
+		headers["Content-Encoding"] = "gzip"
 		ro = &grequests.RequestOptions{
-			Headers: map[string]string{
-				"Content-Type":     contentType,
-				"Content-Encoding": "gzip",
-			},
+			Headers:     headers,
 			RequestBody: &compressedData,
 		}
 	} else {
 		ro = &grequests.RequestOptions{
-			Headers: map[string]string{"Content-Type": contentType},
+			Headers: headers,
 			JSON:    jsonBody,
 		}
 	}

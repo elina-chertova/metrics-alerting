@@ -16,22 +16,28 @@ func MetricsToServer(
 	url string,
 	isCompress,
 	isSendBatch bool,
+	secretKey string,
 ) error {
 	if isSendBatch {
-		return metricsToServerBatch(s, url, isCompress)
+		return metricsToServerBatch(s, url, isCompress, secretKey)
 	}
 
 	switch contentType {
 	case formatter.ContentTypeTextPlain:
-		return metricsToServerTextPlain(s, url, isCompress)
+		return metricsToServerTextPlain(s, url, isCompress, secretKey)
 	case formatter.ContentTypeJSON:
-		return metricsToServerAppJSON(s, url, isCompress)
+		return metricsToServerAppJSON(s, url, isCompress, secretKey)
 	default:
 		return fmt.Errorf("error creating HTTP request, wrong Content-Type: %s", contentType)
 	}
 }
 
-func BackoffSendRequest(contentType, url string, isCompress bool, out []byte) error {
+func BackoffSendRequest(
+	contentType, url string,
+	isCompress bool,
+	out []byte,
+	secretKey string,
+) error {
 	retryDelays := []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 	maxRetries := 3
 
@@ -42,7 +48,7 @@ func BackoffSendRequest(contentType, url string, isCompress bool, out []byte) er
 			}
 		}
 
-		err := sendRequest(contentType, isCompress, url, out)
+		err := sendRequest(contentType, isCompress, url, out, secretKey)
 
 		if err != nil {
 			if retry == maxRetries {
@@ -56,7 +62,12 @@ func BackoffSendRequest(contentType, url string, isCompress bool, out []byte) er
 	return nil
 }
 
-func metricsToServerBatch(s *filememory.MemStorage, url string, isCompress bool) error {
+func metricsToServerBatch(
+	s *filememory.MemStorage,
+	url string,
+	isCompress bool,
+	secretKey string,
+) error {
 	var metric formatter.Metric
 	var metrics []formatter.Metric
 
@@ -74,7 +85,7 @@ func metricsToServerBatch(s *filememory.MemStorage, url string, isCompress bool)
 		return fmt.Errorf("error creating JSON: %v", err)
 	}
 
-	err = BackoffSendRequest(formatter.ContentTypeJSON, url, isCompress, out)
+	err = BackoffSendRequest(formatter.ContentTypeJSON, url, isCompress, out, secretKey)
 	if err != nil {
 		return fmt.Errorf("error sending request: %v", err)
 	}
@@ -82,7 +93,12 @@ func metricsToServerBatch(s *filememory.MemStorage, url string, isCompress bool)
 	return nil
 }
 
-func metricsToServerAppJSON(s *filememory.MemStorage, url string, isCompress bool) error {
+func metricsToServerAppJSON(
+	s *filememory.MemStorage,
+	url string,
+	isCompress bool,
+	secretKey string,
+) error {
 	var wg sync.WaitGroup
 
 	for metricName, metricValue := range s.Gauge {
@@ -100,6 +116,7 @@ func metricsToServerAppJSON(s *filememory.MemStorage, url string, isCompress boo
 				url,
 				isCompress,
 				out,
+				secretKey,
 			); err != nil {
 				fmt.Printf("Error sending request for %s: %v\n", metricName, err)
 			}
@@ -121,6 +138,7 @@ func metricsToServerAppJSON(s *filememory.MemStorage, url string, isCompress boo
 				url,
 				isCompress,
 				out,
+				secretKey,
 			); err != nil {
 				fmt.Printf("Error sending request for %s: %v\n", metricName, err)
 			}
@@ -132,7 +150,12 @@ func metricsToServerAppJSON(s *filememory.MemStorage, url string, isCompress boo
 	return nil
 }
 
-func metricsToServerTextPlain(s *filememory.MemStorage, url string, isCompress bool) error {
+func metricsToServerTextPlain(
+	s *filememory.MemStorage,
+	url string,
+	isCompress bool,
+	secretKey string,
+) error {
 	var wg sync.WaitGroup
 	for metricName, metricValue := range s.Gauge {
 		wg.Add(1)
@@ -144,6 +167,7 @@ func metricsToServerTextPlain(s *filememory.MemStorage, url string, isCompress b
 				metricURL,
 				isCompress,
 				nil,
+				secretKey,
 			); err != nil {
 				fmt.Printf("Error sending request for %s: %v\n", metricName, err)
 			}
@@ -160,6 +184,7 @@ func metricsToServerTextPlain(s *filememory.MemStorage, url string, isCompress b
 				metricURL,
 				isCompress,
 				nil,
+				secretKey,
 			); err != nil {
 				fmt.Printf("Error sending request for %s: %v\n", metricName, err)
 			}

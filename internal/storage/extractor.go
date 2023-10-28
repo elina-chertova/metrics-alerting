@@ -42,7 +42,13 @@ func ExtractMetrics(s *filememory.MemStorage) {
 		"RandomValue":   generator.Float64(),
 	}
 	for name, value := range metricsGauge {
-		s.UpdateGauge(name, value)
+		err := s.UpdateGauge(name, value)
+		if err != nil {
+			return
+		}
 	}
-	s.UpdateCounter("PollCount", 1, true)
+	err := s.UpdateCounter("PollCount", 1, true)
+	if err != nil {
+		return
+	}
 }

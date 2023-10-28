@@ -5,6 +5,7 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
+	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/security"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/db"
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
@@ -42,11 +43,13 @@ func NewHandler(st metricsStorage) *Handler {
 	return &Handler{st}
 }
 
-func (h *Handler) UpdateBatchMetrics() gin.HandlerFunc {
+func (h *Handler) UpdateBatchMetrics(secretKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m []f.Metric
+
 		var reader io.Reader = c.Request.Body
 		body, err := io.ReadAll(reader)
+
 		if err != nil {
 			logger.Error(ErrReadReqBody.Error(), zap.String("method", c.Request.Method))
 			http.Error(c.Writer, ErrReadReqBody.Error(), http.StatusInternalServerError)
@@ -61,7 +64,7 @@ func (h *Handler) UpdateBatchMetrics() gin.HandlerFunc {
 
 		err = h.memStorage.InsertBatchMetrics(m)
 		if err != nil {
-			logger.Error("Failed data insert", zap.String("method", c.Request.Method))
+			logger.Error(err.Error(), zap.String("method", c.Request.Method))
 			c.String(http.StatusInternalServerError, "Failed data insert")
 			return
 		}
@@ -74,6 +77,9 @@ func (h *Handler) UpdateBatchMetrics() gin.HandlerFunc {
 			logger.Error(ErrInvalidJSON.Error(), zap.String("method", c.Request.Method))
 			http.Error(c.Writer, ErrInvalidJSON.Error(), http.StatusBadRequest)
 			return
+		}
+		if secretKey != "" {
+			c.Writer.Header().Set("HashSHA256", "")
 		}
 
 		c.Writer.Write(responseJSON)
@@ -102,12 +108,11 @@ func (h *Handler) MetricsListHandler() gin.HandlerFunc {
 			c.String(http.StatusInternalServerError, "Failed to render template")
 			return
 		}
-
 		c.Writer.Header().Set("Content-Type", "text/html")
 	}
 }
 
-func (h *Handler) GetMetricsJSONHandler() gin.HandlerFunc {
+func (h *Handler) GetMetricsJSONHandler(secretKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m f.Metric
 		var err error
@@ -147,13 +152,17 @@ func (h *Handler) GetMetricsJSONHandler() gin.HandlerFunc {
 			c.String(http.StatusInternalServerError, ErrFailedJSONCreating.Error())
 			return
 		}
+		if secretKey != "" {
+			correctHash := security.Hash(string(out), []byte(secretKey))
+			c.Writer.Header().Set("HashSHA256", correctHash)
+		}
 		c.Writer.WriteHeader(http.StatusOK)
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.Writer.Write(out)
 	}
 }
 
-func (h *Handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
+func (h *Handler) GetMetricsTextPlainHandler(secretKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var (
 			value any
@@ -209,21 +218,31 @@ func (h *Handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 			c.Status(http.StatusBadRequest)
 			return
 		}
-
+		if secretKey != "" {
+			correctHash := security.Hash(string(resp), []byte(secretKey))
+			c.Writer.Header().Set("HashSHA256", correctHash)
+		}
 		c.Writer.WriteHeader(http.StatusOK)
 		c.Writer.Write(resp)
 	}
 }
 
-func (h *Handler) MetricsJSONHandler() gin.HandlerFunc {
+func (h *Handler) MetricsJSONHandler(secretKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var (
 			m   f.Metric
 			err error
 			ok  bool
 		)
+
 		var reader io.Reader = c.Request.Body
 		body, err := io.ReadAll(reader)
+		if err != nil {
+			logger.Error(err.Error(), zap.String("method", c.Request.Method))
+			http.Error(c.Writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+
 		if err != nil {
 			logger.Error("error reading request body", zap.String("method", c.Request.Method))
 			http.Error(c.Writer, "error reading request body", http.StatusInternalServerError)
@@ -231,6 +250,7 @@ func (h *Handler) MetricsJSONHandler() gin.HandlerFunc {
 		}
 
 		if err := json.Unmarshal(body, &m); err != nil {
+
 			logger.Error(ErrInvalidJSON.Error(), zap.String("method", c.Request.Method))
 			http.Error(c.Writer, ErrInvalidJSON.Error(), http.StatusBadRequest)
 			return
@@ -297,7 +317,10 @@ func (h *Handler) MetricsJSONHandler() gin.HandlerFunc {
 			logger.Error(ErrFailedJSONCreating.Error(), zap.String("method", c.Request.Method))
 			c.String(http.StatusInternalServerError, ErrFailedJSONCreating.Error())
 		}
-
+		if secretKey != "" {
+			correctHash := security.Hash(string(out), []byte(secretKey))
+			c.Writer.Header().Set("HashSHA256", correctHash)
+		}
 		c.Writer.WriteHeader(http.StatusOK)
 		c.Writer.Header().Set("Content-Type", "application/json")
 		c.Writer.Write(out)
