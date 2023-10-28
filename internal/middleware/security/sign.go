@@ -40,6 +40,9 @@ func HashCheckMiddleware(secretKey string) gin.HandlerFunc {
 			return
 		}
 		requestHash := c.Request.Header.Get("HashSHA256")
+		if requestHash == "" {
+			c.Next()
+		}
 		body, err := io.ReadAll(c.Request.Body)
 		if err != nil {
 			c.AbortWithStatusJSON(
