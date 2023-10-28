@@ -39,9 +39,7 @@ func sendRequest(
 	secretKey string,
 ) error {
 	var ro *grequests.RequestOptions
-	var headers map[string]string
-
-	headers = make(map[string]string)
+	headers := make(map[string]string)
 	headers["Content-Type"] = contentType
 
 	if secretKey != "" {

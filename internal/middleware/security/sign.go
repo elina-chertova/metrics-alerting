@@ -40,14 +40,6 @@ func HashCheckMiddleware(secretKey string) gin.HandlerFunc {
 			return
 		}
 		requestHash := c.Request.Header.Get("HashSHA256")
-		if requestHash == "" {
-
-			c.AbortWithStatusJSON(
-				http.StatusBadRequest,
-				gin.H{"error": "HashSHA256 header is missing"},
-			)
-			return
-		}
 		body, err := io.ReadAll(c.Request.Body)
 		if err != nil {
 			c.AbortWithStatusJSON(
@@ -56,9 +48,8 @@ func HashCheckMiddleware(secretKey string) gin.HandlerFunc {
 			)
 			return
 		}
-		var correctHash string
-
-		correctHash = Hash(string(body), []byte(secretKey))
+		correctHash := Hash(string(body), []byte(secretKey))
+		fmt.Println(correctHash, requestHash)
 		err = CheckHash(correctHash, requestHash)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": ErrInvalidHash.Error()})
