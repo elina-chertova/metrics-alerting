@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
@@ -250,8 +249,6 @@ func (h *Handler) MetricsJSONHandler(secretKey string) gin.HandlerFunc {
 			http.Error(c.Writer, ErrInvalidJSON.Error(), http.StatusBadRequest)
 			return
 		}
-
-		fmt.Println("body", body)
 
 		var returnedMetric f.Metric
 
