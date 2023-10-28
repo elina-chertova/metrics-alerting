@@ -238,12 +238,6 @@ func (h *Handler) MetricsJSONHandler(secretKey string) gin.HandlerFunc {
 		var reader io.Reader = c.Request.Body
 		body, err := io.ReadAll(reader)
 		if err != nil {
-			logger.Error(err.Error(), zap.String("method", c.Request.Method))
-			http.Error(c.Writer, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		if err != nil {
 			logger.Error("error reading request body", zap.String("method", c.Request.Method))
 			http.Error(c.Writer, "error reading request body", http.StatusInternalServerError)
 			return
