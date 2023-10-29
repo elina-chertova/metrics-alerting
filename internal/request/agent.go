@@ -157,6 +157,7 @@ func metricsToServerTextPlain(
 	secretKey string,
 ) error {
 	var wg sync.WaitGroup
+
 	for metricName, metricValue := range s.Gauge {
 		wg.Add(1)
 		go func(metricName string, metricValue float64) {
