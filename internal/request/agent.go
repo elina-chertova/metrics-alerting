@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/formatter"
+	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"sync"
 	"time"
@@ -54,7 +55,14 @@ func BackoffSendRequest(
 			if retry == maxRetries {
 				return fmt.Errorf("error sending request: %v", err)
 			}
-			fmt.Printf("Error sending request (retry %d/%d): %v\n", retry+1, maxRetries, err)
+			logger.Log.Error(
+				fmt.Sprintf(
+					"Error sending request (retry %d/%d): %v",
+					retry+1,
+					maxRetries,
+					err,
+				),
+			)
 		} else {
 			break
 		}
@@ -108,7 +116,7 @@ func metricsToServerAppJSON(
 			metrics, _ := formJSON(metricName, metricValue, config.Gauge)
 			out, err := json.Marshal(metrics)
 			if err != nil {
-				fmt.Printf("error creating JSON: %v\n", err)
+				logger.Log.Error(fmt.Sprintf("error creating JSON: %v", err))
 			}
 
 			if err = BackoffSendRequest(
@@ -118,7 +126,7 @@ func metricsToServerAppJSON(
 				out,
 				secretKey,
 			); err != nil {
-				fmt.Printf("Error sending request for %s: %v\n", metricName, err)
+				logger.Log.Error(fmt.Sprintf("Error sending request for %s: %v", metricName, err))
 			}
 		}(metricName, metricValue)
 	}
@@ -131,7 +139,7 @@ func metricsToServerAppJSON(
 			out, err := json.Marshal(metrics)
 
 			if err != nil {
-				fmt.Printf("error creating JSON: %v\n", err)
+				logger.Log.Error(fmt.Sprintf("error creating JSON: %v", err))
 			}
 			if err = BackoffSendRequest(
 				formatter.ContentTypeJSON,
@@ -140,7 +148,7 @@ func metricsToServerAppJSON(
 				out,
 				secretKey,
 			); err != nil {
-				fmt.Printf("Error sending request for %s: %v\n", metricName, err)
+				logger.Log.Error(fmt.Sprintf("Error sending request for %s: %v", metricName, err))
 			}
 
 		}(metricName, metricValue)
@@ -170,7 +178,7 @@ func metricsToServerTextPlain(
 				nil,
 				secretKey,
 			); err != nil {
-				fmt.Printf("Error sending request for %s: %v\n", metricName, err)
+				logger.Log.Error(fmt.Sprintf("Error sending request for %s: %v", metricName, err))
 			}
 		}(metricName, metricValue)
 	}
@@ -187,7 +195,7 @@ func metricsToServerTextPlain(
 				nil,
 				secretKey,
 			); err != nil {
-				fmt.Printf("Error sending request for %s: %v\n", metricName, err)
+				logger.Log.Error(fmt.Sprintf("Error sending request for %s: %v", metricName, err))
 			}
 		}(metricName, metricValue)
 	}

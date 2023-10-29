@@ -4,7 +4,7 @@ type Settings struct {
 	IsCompress      bool
 	IsSendBatch     bool
 	FlagContentType string
-	Url             string
+	URL             string
 }
 
 func NewSettings() *Settings {
@@ -12,6 +12,6 @@ func NewSettings() *Settings {
 		IsCompress:      true,
 		IsSendBatch:     false,
 		FlagContentType: "application/json",
-		Url:             "http://%s/%s",
+		URL:             "http://%s/%s",
 	}
 }

@@ -11,6 +11,7 @@ type Agent struct {
 	PollInterval   int
 	ReportInterval int
 	SecretKey      string
+	RateLimit      int
 }
 
 func ParseAgentFlags(a *Agent) {
@@ -18,6 +19,7 @@ func ParseAgentFlags(a *Agent) {
 	flag.IntVar(&a.PollInterval, "p", 2, "time in seconds to update filememory, example: 2")
 	flag.IntVar(&a.ReportInterval, "r", 10, "time in seconds to send data to server, example: 10")
 	flag.StringVar(&a.SecretKey, "k", "", "secret key for hash")
+	flag.IntVar(&a.RateLimit, "l", 2, "Rate limit to max workers number")
 	flag.Parse()
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
@@ -31,6 +33,9 @@ func ParseAgentFlags(a *Agent) {
 	}
 	if envRunKey := os.Getenv("KEY"); envRunKey != "" {
 		a.SecretKey = envRunKey
+	}
+	if envRateLimit := os.Getenv("RATE_LIMIT"); envRateLimit != "" {
+		a.RateLimit, _ = strconv.Atoi(envRateLimit)
 	}
 
 }

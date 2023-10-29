@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
@@ -12,7 +13,6 @@ import (
 	"go.uber.org/zap"
 	"html/template"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -418,6 +418,6 @@ func (db *Database) PingDB() gin.HandlerFunc {
 }
 
 func handleDBError(c *gin.Context, message string, err error) {
-	log.Printf("%s: %v", message, err)
+	logger.Log.Error(fmt.Sprintf("%s: %v", message, err))
 	c.JSON(http.StatusInternalServerError, gin.H{"error": message})
 }

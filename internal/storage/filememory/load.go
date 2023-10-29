@@ -3,6 +3,7 @@ package filememory
 import (
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
+	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/goccy/go-json"
 	"os"
 )
@@ -20,11 +21,11 @@ func (s *MemStorage) load(fileName string) {
 	combinedData := generateCombinedData(s)
 	dataNew, err := os.ReadFile(fileName)
 	if err != nil {
-		fmt.Print(LoadError{Err: err, Message: "failed to read data from file"}.Error())
+		logger.Log.Error(BackupError{Err: err, Message: "failed to read data from file"}.Error())
 	}
 
 	if err := json.Unmarshal(dataNew, &combinedData); err != nil {
-		fmt.Print(LoadError{Err: err, Message: "failed to unmarshal JSON"}.Error())
+		logger.Log.Error(BackupError{Err: err, Message: "failed to unmarshal JSON"}.Error())
 	}
 	s.updateBackupMap(combinedData)
 }

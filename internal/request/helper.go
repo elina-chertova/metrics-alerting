@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/formatter"
+	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/security"
 	"github.com/levigross/grequests"
 )
@@ -84,7 +85,7 @@ func compressData(data []byte) bytes.Buffer {
 
 	_, err := gzipWriter.Write(data)
 	if err != nil {
-		fmt.Printf("error compressing data %s", ErrCompressData.Error())
+		logger.Log.Error(fmt.Sprintf("error compressing data %s", ErrCompressData.Error()))
 	}
 	gzipWriter.Close()
 	return compressedBuffer
