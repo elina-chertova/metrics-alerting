@@ -67,19 +67,18 @@ func extractMetricsWorker(
 	worker *Worker,
 	stopChan <-chan struct{},
 ) {
-	go func() {
-		for {
-			select {
-			case <-stopChan:
-			default:
-			}
-			err := st.ExtractMetrics(storage)
-			if err != nil {
-				logger.Log.Error(err.Error(), zap.String("method", "ExtractMetrics"))
-			}
-			time.Sleep(time.Duration(worker.config.PollInterval) * time.Second)
+	for {
+		select {
+		case <-stopChan:
+		default:
 		}
-	}()
+		err := st.ExtractMetrics(storage)
+		if err != nil {
+			logger.Log.Error(err.Error(), zap.String("method", "ExtractMetrics"))
+		}
+		time.Sleep(time.Duration(worker.config.PollInterval) * time.Second)
+	}
+
 }
 
 func extractOSMetricsWorker(
@@ -87,19 +86,18 @@ func extractOSMetricsWorker(
 	worker *Worker,
 	stopChan <-chan struct{},
 ) {
-	go func() {
-		for {
-			select {
-			case <-stopChan:
-			default:
-			}
-			err := st.ExtractOSMetrics(storage)
-			if err != nil {
-				logger.Log.Error(err.Error(), zap.String("method", "ExtractOSMetrics"))
-			}
-			time.Sleep(time.Duration(worker.config.PollInterval) * time.Second)
+	for {
+		select {
+		case <-stopChan:
+		default:
 		}
-	}()
+		err := st.ExtractOSMetrics(storage)
+		if err != nil {
+			logger.Log.Error(err.Error(), zap.String("method", "ExtractOSMetrics"))
+		}
+		time.Sleep(time.Duration(worker.config.PollInterval) * time.Second)
+	}
+
 }
 
 type Worker struct {
