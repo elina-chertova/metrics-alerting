@@ -2,12 +2,10 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/security"
-	"github.com/elina-chertova/metrics-alerting.git/internal/storage/db"
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 	"go.uber.org/zap"
@@ -34,13 +32,28 @@ type metricsStorage interface {
 	GetMetrics() (map[string]int64, map[string]float64)
 	InsertBatchMetrics([]f.Metric) error
 }
+type database interface {
+	PingDB() gin.HandlerFunc
+}
 
 type Handler struct {
 	memStorage metricsStorage
 }
 
+type HandlerDB struct {
+	db database
+}
+
 func NewHandler(st metricsStorage) *Handler {
 	return &Handler{st}
+}
+
+func NewDatabase(d database) *HandlerDB {
+	return &HandlerDB{db: d}
+}
+
+func (db *HandlerDB) PingDB() gin.HandlerFunc {
+	return db.db.PingDB()
 }
 
 func (h *Handler) UpdateBatchMetrics(secretKey string) gin.HandlerFunc {
@@ -387,37 +400,4 @@ func (h *Handler) MetricsTextPlainHandler() gin.HandlerFunc {
 		c.Header("Content-Type", "text/plain")
 		c.Status(http.StatusOK)
 	}
-}
-
-type Database struct {
-	db *db.DB
-}
-
-func NewDatabase(d *db.DB) *Database {
-	return &Database{db: d}
-}
-
-func (db *Database) PingDB() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		sqlDB, err := db.db.Database.DB()
-		if err != nil {
-			handleDBError(c, "failed to get database connection", err)
-			return
-		}
-
-		if err := sqlDB.Ping(); err != nil {
-			handleDBError(c, "failed to ping the database", err)
-			return
-		}
-
-		c.JSON(
-			http.StatusOK,
-			gin.H{"message": "Successfully connected to the database and pinged it"},
-		)
-	}
-}
-
-func handleDBError(c *gin.Context, message string, err error) {
-	logger.Log.Error(fmt.Sprintf("%s: %v", message, err))
-	c.JSON(http.StatusInternalServerError, gin.H{"error": message})
 }
