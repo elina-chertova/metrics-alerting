@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
+	st "github.com/elina-chertova/metrics-alerting.git/internal/metricExtractor"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	r "github.com/elina-chertova/metrics-alerting.git/internal/request"
-	st "github.com/elina-chertova/metrics-alerting.git/internal/storage"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"go.uber.org/zap"
 	"sync"

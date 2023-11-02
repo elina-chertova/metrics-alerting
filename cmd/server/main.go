@@ -27,17 +27,7 @@ func run() error {
 	router.Use(logger.RequestLogger())
 	router.Use(compression.GzipHandle())
 
-	var h *handlers.Handler
-
-	if serverConfig.DatabaseDSN != "" {
-		connection := db.Connect(serverConfig.DatabaseDSN)
-		database := handlers.NewDatabase(connection)
-		h = handlers.NewHandler(connection)
-		router.GET("/ping", database.PingDB())
-	} else {
-		s := filememory.NewMemStorage(true, serverConfig)
-		h = handlers.NewHandler(s)
-	}
+	h := buildStorage(serverConfig, router)
 
 	router.POST(
 		"/updates/",
@@ -67,4 +57,17 @@ func run() error {
 	}
 
 	return nil
+}
+
+func buildStorage(config *config.Server, router *gin.Engine) *handlers.Handler {
+	if config.DatabaseDSN != "" {
+		connection := db.Connect(config.DatabaseDSN)
+		database := handlers.NewHandlerDB(connection)
+		router.GET("/ping", database.PingDB())
+		return handlers.NewHandler(connection)
+
+	} else {
+		s := filememory.NewMemStorage(true, config)
+		return handlers.NewHandler(s)
+	}
 }

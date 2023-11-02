@@ -48,7 +48,7 @@ func NewHandler(st metricsStorage) *Handler {
 	return &Handler{st}
 }
 
-func NewDatabase(d database) *HandlerDB {
+func NewHandlerDB(d database) *HandlerDB {
 	return &HandlerDB{db: d}
 }
 
