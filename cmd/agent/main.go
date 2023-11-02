@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
-	st "github.com/elina-chertova/metrics-alerting.git/internal/metricExtractor"
+	st "github.com/elina-chertova/metrics-alerting.git/internal/metricextractor"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	r "github.com/elina-chertova/metrics-alerting.git/internal/request"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"

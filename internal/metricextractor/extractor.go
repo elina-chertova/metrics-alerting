@@ -1,4 +1,4 @@
-package metricExtractor
+package metricextractor
 
 import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
