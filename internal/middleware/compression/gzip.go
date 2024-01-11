@@ -1,31 +1,41 @@
+// Package compression provides middleware for handling gzip compression in HTTP requests and responses.
 package compression
 
 import (
-	"compress/gzip"
-	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	gzip "github.com/klauspost/pgzip"
 )
 
+// gzipWriter wraps gin.ResponseWriter and a generic io.Writer to enable gzip
+// compression on HTTP responses.
 type gzipWriter struct {
 	gin.ResponseWriter
 	Writer io.Writer
 }
 
+// gzipReader wraps an io.ReadCloser and a gzip.Reader to facilitate reading gzip
+// compressed data from HTTP requests.
 type gzipReader struct {
 	io.ReadCloser
 	Reader *gzip.Reader
 }
 
+// Write compresses the given byte slice and writes it to the HTTP response.
 func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
+// Read decompresses data from the HTTP request body and places it into the provided byte slice.
 func (r gzipReader) Read(p []byte) (n int, err error) {
 	return r.Reader.Read(p)
 }
 
+// GzipHandle returns a Gin middleware function for handling gzip compression.
+// This middleware also handles decompressing gzip-encoded request bodies.
 func GzipHandle() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		contentType := c.Request.Header.Get("Content-Type")
@@ -44,7 +54,6 @@ func GzipHandle() gin.HandlerFunc {
 		supportsGzip := strings.Contains(acceptEncoding, "gzip")
 
 		var gz *gzip.Writer
-
 		if supportsGzip {
 			var err error
 			gz, err = gzip.NewWriterLevel(c.Writer, gzip.BestSpeed)

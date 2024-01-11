@@ -1,7 +1,14 @@
+// Package handlers provides HTTP handlers for various endpoints
+// in a metrics alerting application.
 package handlers
 
 import (
 	"errors"
+	"html/template"
+	"io"
+	"net/http"
+	"strconv"
+
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
@@ -9,10 +16,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 	"go.uber.org/zap"
-	"html/template"
-	"io"
-	"net/http"
-	"strconv"
 )
 
 var (
@@ -24,6 +27,7 @@ var (
 	ErrReadReqBody        = errors.New("error reading request body")
 )
 
+// metricsStorage defines an interface for storing and retrieving metric data.
 type metricsStorage interface {
 	UpdateCounter(name string, value int64, ok bool) error
 	UpdateGauge(name string, value float64) error
@@ -32,10 +36,13 @@ type metricsStorage interface {
 	GetMetrics() (map[string]int64, map[string]float64)
 	InsertBatchMetrics([]f.Metric) error
 }
+
+// database defines an interface for interacting with a database.
 type database interface {
 	PingDB() gin.HandlerFunc
 }
 
+// Handler encapsulates handling logic for metric-related HTTP endpoints.
 type Handler struct {
 	memStorage metricsStorage
 }
@@ -44,10 +51,12 @@ type HandlerDB struct {
 	db database
 }
 
+// NewHandler creates a new Handler with the given metrics storage.
 func NewHandler(st metricsStorage) *Handler {
 	return &Handler{st}
 }
 
+// NewHandlerDB creates a new HandlerDB with the given database interface.
 func NewHandlerDB(d database) *HandlerDB {
 	return &HandlerDB{db: d}
 }
@@ -56,6 +65,9 @@ func (db *HandlerDB) PingDB() gin.HandlerFunc {
 	return db.db.PingDB()
 }
 
+// UpdateBatchMetrics creates a gin.HandlerFunc that handles batch updates
+// of metric data. It processes JSON requests containing multiple metrics
+// and updates them in the storage.
 func (h *Handler) UpdateBatchMetrics(secretKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m []f.Metric
@@ -99,6 +111,8 @@ func (h *Handler) UpdateBatchMetrics(secretKey string) gin.HandlerFunc {
 	}
 }
 
+// MetricsListHandler creates a gin.HandlerFunc that serves a webpage displaying
+// a list of all stored metrics. It renders the metrics data in an HTML template.
 func (h *Handler) MetricsListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tmpl, err := template.New("data").Parse("<!DOCTYPE html>\n<html>\n\n<head>\n    <title>Metric List</title>\n</head>\n\n<body>\n<ul>\n    {{ range $key, $value := .MetricsC }}\n    <p>{{$key}}: {{$value}}</p>\n    {{ end }}\n    {{ range $key, $value := .MetricsG }}\n    <p>{{$key}}: {{$value}}</p>\n    {{ end }}\n</ul>\n</body>\n\n</html>")
@@ -125,6 +139,9 @@ func (h *Handler) MetricsListHandler() gin.HandlerFunc {
 	}
 }
 
+// GetMetricsJSONHandler creates a gin.HandlerFunc for retrieving a specific metric
+// in JSON format. The handler reads a metric ID and type from the request
+// and returns it as JSON.
 func (h *Handler) GetMetricsJSONHandler(secretKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m f.Metric
@@ -175,6 +192,10 @@ func (h *Handler) GetMetricsJSONHandler(secretKey string) gin.HandlerFunc {
 	}
 }
 
+// GetMetricsTextPlainHandler creates a gin.HandlerFunc for retrieving and updating
+// a specific metric in plain text format. The handler reads metric details from
+// the request URL, performs necessary operations (like updating or retrieving),
+// and responds with the metric value in plain text.
 func (h *Handler) GetMetricsTextPlainHandler(secretKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var (
@@ -240,6 +261,9 @@ func (h *Handler) GetMetricsTextPlainHandler(secretKey string) gin.HandlerFunc {
 	}
 }
 
+// MetricsJSONHandler creates a gin.HandlerFunc for processing incoming metric data
+// in JSON format. The handler reads JSON formatted metric data from the request body,
+// updates or retrieves the metric in storage, and responds with the updated metric data.
 func (h *Handler) MetricsJSONHandler(secretKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var (
@@ -334,6 +358,10 @@ func (h *Handler) MetricsJSONHandler(secretKey string) gin.HandlerFunc {
 	}
 }
 
+// MetricsTextPlainHandler creates a gin.HandlerFunc that handles metric data
+// submitted in plain text format. The handler parses the metric type, name,
+// and value from the request, updates or retrieves the metric in storage,
+// and sends back a plain text response.
 func (h *Handler) MetricsTextPlainHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ok bool

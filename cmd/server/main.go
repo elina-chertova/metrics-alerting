@@ -1,6 +1,10 @@
 package main
 
 import (
+	"net/http/pprof"
+
+	"github.com/gin-gonic/gin"
+
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/handlers"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
@@ -8,9 +12,9 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/security"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/db"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
-	"github.com/gin-gonic/gin"
 
 	"net/http"
+	_ "net/http/pprof"
 )
 
 func main() {
@@ -29,6 +33,7 @@ func run() error {
 
 	h := buildStorage(serverConfig, router)
 
+	RegisterPprofRoutes(router)
 	router.POST(
 		"/updates/",
 		security.HashCheckMiddleware(serverConfig.SecretKey),
@@ -70,4 +75,17 @@ func buildStorage(config *config.Server, router *gin.Engine) *handlers.Handler {
 		s := filememory.NewMemStorage(true, config)
 		return handlers.NewHandler(s)
 	}
+}
+
+func RegisterPprofRoutes(router *gin.Engine) {
+	router.GET("/debug/pprof/", gin.WrapF(pprof.Index))
+	router.GET("/debug/pprof/cmdline", gin.WrapF(pprof.Cmdline))
+	router.GET("/debug/pprof/profile", gin.WrapF(pprof.Profile))
+	router.GET("/debug/pprof/symbol", gin.WrapF(pprof.Symbol))
+	router.GET("/debug/pprof/trace", gin.WrapF(pprof.Trace))
+
+	router.GET("/debug/pprof/goroutine", gin.WrapF(pprof.Handler("goroutine").ServeHTTP))
+	router.GET("/debug/pprof/heap", gin.WrapF(pprof.Handler("heap").ServeHTTP))
+	router.GET("/debug/pprof/threadcreate", gin.WrapF(pprof.Handler("threadcreate").ServeHTTP))
+	router.GET("/debug/pprof/block", gin.WrapF(pprof.Handler("block").ServeHTTP))
 }

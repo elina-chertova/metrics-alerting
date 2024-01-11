@@ -1,3 +1,5 @@
+// Package security provides functionalities related to security aspects
+// of the application.
 package security
 
 import (
@@ -7,11 +9,20 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"io"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
+// Hash generates a HMAC SHA256 hash of the provided data using a secret key.
+//
+// Parameters:
+// - data: The string data to be hashed.
+// - secretKey: A byte slice representing the secret key used for hashing.
+//
+// Returns:
+// - A string representing the hex-encoded hash of the data.
 func Hash(data string, secretKey []byte) string {
 	h := hmac.New(sha256.New, secretKey)
 	h.Write([]byte(data))
@@ -24,6 +35,15 @@ var (
 	ErrReadReqBody = errors.New("error reading request body")
 )
 
+// CheckHash compares a correct hash with a request hash and returns an error
+// if they do not match.
+//
+// Parameters:
+// - correctHash: The correct hash to compare against.
+// - requestHash: The hash obtained from the request.
+//
+// Returns:
+// - An error if the hashes do not match, indicating a potential data integrity issue.
 func CheckHash(correctHash, requestHash string) error {
 	decodeRightHash, _ := hex.DecodeString(correctHash)
 	decodeRequestHash, _ := hex.DecodeString(requestHash)
@@ -34,6 +54,15 @@ func CheckHash(correctHash, requestHash string) error {
 	return nil
 }
 
+// HashCheckMiddleware returns a Gin middleware function that validates the hash
+// of the request body. It checks if the request hash matches the computed hash
+// of the request body using a secret key.
+//
+// Parameters:
+// - secretKey: A string representing the secret key used for hashing.
+//
+// Returns:
+// - A gin.HandlerFunc that performs hash validation on incoming requests.
 func HashCheckMiddleware(secretKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if secretKey == "" {

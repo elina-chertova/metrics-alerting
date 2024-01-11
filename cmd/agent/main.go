@@ -2,14 +2,18 @@ package main
 
 import (
 	"fmt"
+	"sync"
+	"time"
+
+	_ "net/http/pprof"
+
+	"go.uber.org/zap"
+
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	st "github.com/elina-chertova/metrics-alerting.git/internal/metricextractor"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	r "github.com/elina-chertova/metrics-alerting.git/internal/request"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
-	"go.uber.org/zap"
-	"sync"
-	"time"
 )
 
 func sendMetricsWorker(storage *filememory.MemStorage, worker *Worker, stopChan <-chan struct{}) {
@@ -21,12 +25,14 @@ func sendMetricsWorker(storage *filememory.MemStorage, worker *Worker, stopChan 
 					worker.config.FlagAddress,
 					"updates",
 				)
+				fmt.Println("worker.settings.URL", worker.settings.URL)
 			} else {
 				worker.settings.URL = fmt.Sprintf(
 					worker.settings.URL,
 					worker.config.FlagAddress,
 					"update",
 				)
+				fmt.Println("worker.settings.URL2", worker.settings.URL)
 			}
 		},
 	)

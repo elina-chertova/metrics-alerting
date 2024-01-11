@@ -1,8 +1,9 @@
 package metricextractor
 
 import (
-	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"testing"
+
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 )
 
 func TestExtractMetrics(t *testing.T) {

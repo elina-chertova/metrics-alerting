@@ -1,3 +1,4 @@
+// Package request handles the sending of metrics data to a specified endpoint.
 package request
 
 import (
@@ -5,6 +6,7 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
+
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
@@ -20,18 +22,32 @@ var (
 	ErrUnsupportedMetricType = errors.New("unsupported metric type")
 )
 
+// RetryableError represents an error that occurred during an HTTP request that may be retried.
 type RetryableError struct {
 	Err error
 }
 
+// Error returns a formatted error message indicating the error is retryable.
 func (e RetryableError) Error() string {
 	return fmt.Sprintf("retryable error: %v", e.Err)
 }
 
+// Retryable indicates whether the error is retryable.
 func (e RetryableError) Retryable() bool {
 	return true
 }
 
+// sendRequest creates and sends an HTTP request with optional compression and security hashing.
+//
+// Parameters:
+// - contentType: The MIME type of the content.
+// - isCompress: Indicates whether the data should be compressed.
+// - url: The URL to which the request is sent.
+// - jsonBody: The JSON formatted data to be sent.
+// - secretKey: A secret key used for generating a hash (optional).
+//
+// Returns:
+// - A RetryableError if the request creation or execution fails.
 func sendRequest(
 	contentType string,
 	isCompress bool,
@@ -79,6 +95,13 @@ func sendRequest(
 	return nil
 }
 
+// compressData compresses the given data using gzip compression.
+//
+// Parameters:
+// - data: The data to be compressed.
+//
+// Returns:
+// - A bytes.Buffer containing the compressed data.
 func compressData(data []byte) bytes.Buffer {
 	var compressedBuffer bytes.Buffer
 	gzipWriter := gzip.NewWriter(&compressedBuffer)
@@ -91,6 +114,15 @@ func compressData(data []byte) bytes.Buffer {
 	return compressedBuffer
 }
 
+// formJSON creates a formatter.Metric from a metric name, value, and type.
+//
+// Parameters:
+// - metricName: The name of the metric.
+// - value: The value of the metric.
+// - typeMetric: The type of the metric (gauge or counter).
+//
+// Returns:
+// - A formatter.Metric instance and an error if the metric type or value type is unsupported.
 func formJSON(metricName string, value interface{}, typeMetric string) (formatter.Metric, error) {
 	var metrics formatter.Metric
 
