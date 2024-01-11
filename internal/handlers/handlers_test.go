@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 
