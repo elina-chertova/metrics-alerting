@@ -334,6 +334,7 @@ func Example_metricsListHandler() {
 
 		}
 	}(resp.Body)
+
 	fmt.Printf("Content Type: %v\n", resp.Header.Get("Content-Type"))
 	// Output: Content Type: text/html; charset=utf-8
 }
@@ -369,6 +370,7 @@ func Example_getMetricsJSONHandler() {
 
 		}
 	}(resp.Body)
+
 	fmt.Printf("Status Code: %v\n", resp.StatusCode)
 	// Output: Status Code: 200
 }
