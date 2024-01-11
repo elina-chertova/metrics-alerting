@@ -328,12 +328,12 @@ func Example_metricsListHandler() {
 	defer ts.Close()
 
 	resp, _ := http.Get(ts.URL)
-
+	defer resp.Body.Close()
 	fmt.Printf("Content Type: %v\n", resp.Header.Get("Content-Type"))
 	// Output: Content Type: text/html; charset=utf-8
 }
 
-func ExampleGetMetricsJSONHandler() {
+func Example_getMetricsJSONHandler() {
 	router := gin.Default()
 
 	ss := &config.Server{
@@ -358,7 +358,7 @@ func ExampleGetMetricsJSONHandler() {
 	req, _ := http.NewRequest("POST", ts.URL+"/value/", bytes.NewBuffer(data))
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
-
+	defer resp.Body.Close()
 	fmt.Printf("Status Code: %v\n", resp.StatusCode)
 	// Output: Status Code: 200
 }
