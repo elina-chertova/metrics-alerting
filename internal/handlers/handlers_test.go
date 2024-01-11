@@ -2,6 +2,9 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
+	"github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -274,111 +277,87 @@ func TestGetMetricsJSONHandler(t *testing.T) {
 	}
 }
 
-//func TestGetMetricsJSONHandler(t *testing.T) {
-//	gin.SetMode(gin.TestMode)
-//	router := gin.New()
-//
-//	serverConfig := config.NewServer()
-//	memStorage := filememory.NewMemStorage(true, serverConfig)
-//
-//	h := NewHandler(memStorage)
-//	router.POST("/value/", h.GetMetricsJSONHandler("your-secret-key"))
-//	// Additional test cases
-//	tests := []struct {
-//		name           string
-//		requestBody    []byte // using raw JSON string for more control
-//		expectedStatus int
-//		expectedBody   string // you can expect specific error messages if you want
-//	}{
-//		{
-//			name:           "Invalid Metric Type",
-//			requestBody:    []byte(`{"ID": "metric2", "MType": "invalid", "Delta": 5}`),
-//			expectedStatus: http.StatusBadRequest,
-//			expectedBody:   "", // Replace with expected error message if necessary
-//		},
-//		{
-//			name:           "Missing Metric ID",
-//			requestBody:    []byte(`{"MType": "counter", "Delta": 5}`),
-//			expectedStatus: http.StatusBadRequest,
-//			expectedBody:   "", // Replace with expected error message if necessary
-//		},
-//		{
-//			name:           "Invalid JSON Format",
-//			requestBody:    []byte(`{"ID": "metric3", "MType": "counter", "Delta": "invalid"}`),
-//			expectedStatus: http.StatusBadRequest,
-//			expectedBody:   "", // Replace with expected error message if necessary
-//		},
-//		// Add more test cases as needed
-//	}
-//
-//	// Run test cases
-//	for _, tc := range tests {
-//		t.Run(
-//			tc.name, func(t *testing.T) {
-//				// Create a request with JSON body
-//				req := httptest.NewRequest("POST", "/value/", bytes.NewBuffer(tc.requestBody))
-//				req.Header.Set("Content-Type", "application/json")
-//
-//				// Record response
-//				w := httptest.NewRecorder()
-//				router.ServeHTTP(w, req)
-//
-//				// Validate response
-//				assert.Equal(
-//					t,
-//					tc.expectedStatus,
-//					w.Code,
-//					"Expected and actual status codes should match",
-//				)
-//
-//				if tc.expectedBody != "" {
-//					responseBody, _ := ioutil.ReadAll(w.Body)
-//					assert.Contains(
-//						t,
-//						string(responseBody),
-//						tc.expectedBody,
-//						"Response body should contain the expected message",
-//					)
-//				}
-//				// Add more assertions as needed
-//			},
-//		)
-//	}
-//
-//	//tests := []struct {
-//	//	name           string
-//	//	metric         f.Metric
-//	//	expectedStatus int
-//	//}{
-//	//	{
-//	//		name: "Valid Counter Metric",
-//	//		metric: f.Metric{
-//	//			ID:    "metric1",
-//	//			MType: config.Counter,
-//	//			Delta: new(int64),
-//	//		},
-//	//		expectedStatus: http.StatusOK,
-//	//	},
-//	//}
-//	//
-//	//for _, tc := range tests {
-//	//	t.Run(
-//	//		tc.name, func(t *testing.T) {
-//	//			jsonData, _ := json.Marshal(tc.metric)
-//	//
-//	//			req := httptest.NewRequest("POST", "/value/", bytes.NewBuffer(jsonData))
-//	//			req.Header.Set("Content-Type", "application/json")
-//	//
-//	//			w := httptest.NewRecorder()
-//	//			router.ServeHTTP(w, req)
-//	//
-//	//			assert.Equal(
-//	//				t,
-//	//				tc.expectedStatus,
-//	//				w.Code,
-//	//				"Expected and actual status codes should match",
-//	//			)
-//	//		},
-//	//	)
-//	//}
-//}
+func Example_updateBatchMetrics() {
+	router := gin.Default()
+
+	ss := &config.Server{
+		FlagAddress:     "localhost:8080",
+		StoreInterval:   300,
+		FileStoragePath: "tmp/metrics-db.json",
+		FlagRestore:     true,
+		DatabaseDSN:     "",
+		SecretKey:       "your-secret-key",
+	}
+
+	s := filememory.NewMemStorage(true, ss)
+	h := NewHandler(s)
+
+	router.POST("/updates/", h.UpdateBatchMetrics("secret"))
+
+	requestBody := []byte(`[{"id":"metric1","type":"gauge","value":10.5}]`)
+	req, _ := http.NewRequest("POST", "/updates/", bytes.NewBuffer(requestBody))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	fmt.Println(w.Code)
+
+	// Output: 500
+}
+
+func Example_metricsListHandler() {
+	router := gin.Default()
+
+	ss := &config.Server{
+		FlagAddress:     "localhost:8080",
+		StoreInterval:   300,
+		FileStoragePath: "tmp/metrics-db.json",
+		FlagRestore:     true,
+		DatabaseDSN:     "",
+		SecretKey:       "your-secret-key",
+	}
+
+	s := filememory.NewMemStorage(true, ss)
+	h := NewHandler(s)
+
+	router.GET("/", h.MetricsListHandler())
+
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	resp, _ := http.Get(ts.URL)
+
+	fmt.Printf("Content Type: %v\n", resp.Header.Get("Content-Type"))
+	// Output: Content Type: text/html; charset=utf-8
+}
+
+func ExampleGetMetricsJSONHandler() {
+	router := gin.Default()
+
+	ss := &config.Server{
+		FlagAddress:     "localhost:8080",
+		StoreInterval:   300,
+		FileStoragePath: "tmp/metrics-db.json",
+		FlagRestore:     true,
+		DatabaseDSN:     "",
+		SecretKey:       "your-secret-key",
+	}
+	s := filememory.NewMemStorage(true, ss)
+	h := NewHandler(s)
+	router.POST("/value/", h.GetMetricsJSONHandler("your-secret-key"))
+
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	var d int64 = 4
+	metricRequest := formatter.Metric{ID: "metric1", MType: "counter", Delta: &d, Value: nil}
+
+	data, _ := json.Marshal(metricRequest)
+	req, _ := http.NewRequest("POST", ts.URL+"/value/", bytes.NewBuffer(data))
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := http.DefaultClient.Do(req)
+
+	fmt.Printf("Status Code: %v\n", resp.StatusCode)
+	// Output: Status Code: 200
+}
