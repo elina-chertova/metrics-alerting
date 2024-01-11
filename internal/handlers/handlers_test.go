@@ -328,7 +328,12 @@ func Example_metricsListHandler() {
 	defer ts.Close()
 
 	resp, _ := http.Get(ts.URL)
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
 	fmt.Printf("Content Type: %v\n", resp.Header.Get("Content-Type"))
 	// Output: Content Type: text/html; charset=utf-8
 }
@@ -358,7 +363,12 @@ func Example_getMetricsJSONHandler() {
 	req, _ := http.NewRequest("POST", ts.URL+"/value/", bytes.NewBuffer(data))
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ := http.DefaultClient.Do(req)
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(resp.Body)
 	fmt.Printf("Status Code: %v\n", resp.StatusCode)
 	// Output: Status Code: 200
 }
