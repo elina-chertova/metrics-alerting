@@ -14,7 +14,6 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 
 	"net/http"
-	_ "net/http/pprof"
 )
 
 func main() {

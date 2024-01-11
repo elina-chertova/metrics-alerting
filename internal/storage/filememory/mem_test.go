@@ -14,8 +14,7 @@ func TestNewMemStorage(t *testing.T) {
 	storage := NewMemStorage(false, conf)
 	if storage == nil {
 		t.Errorf("NewMemStorage returned nil")
-	}
-	if len(storage.Gauge) != 0 || len(storage.Counter) != 0 {
+	} else if len(storage.Gauge) != 0 || len(storage.Counter) != 0 {
 		t.Errorf("NewMemStorage should initialize empty maps")
 	}
 }

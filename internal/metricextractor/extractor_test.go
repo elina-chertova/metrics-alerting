@@ -3,6 +3,8 @@ package metricextractor
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 )
 
@@ -23,4 +25,14 @@ func TestExtractMetrics(t *testing.T) {
 			len(st.Gauge),
 		)
 	}
+}
+
+func TestExtractOSMetrics(t *testing.T) {
+	st := &filememory.MemStorage{
+		Gauge:   make(map[string]float64),
+		Counter: make(map[string]int64),
+	}
+	err := ExtractOSMetrics(st)
+	assert.NoError(t, err)
+
 }
