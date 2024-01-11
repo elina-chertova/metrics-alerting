@@ -286,13 +286,13 @@ func Example_updateBatchMetrics() {
 		FileStoragePath: "tmp/metrics-db.json",
 		FlagRestore:     true,
 		DatabaseDSN:     "",
-		SecretKey:       "your-secret-key",
+		SecretKey:       "secret-key",
 	}
 
 	s := filememory.NewMemStorage(true, ss)
 	h := NewHandler(s)
 
-	router.POST("/updates/", h.UpdateBatchMetrics("secret"))
+	router.POST("/updates/", h.UpdateBatchMetrics("secret-key"))
 
 	requestBody := []byte(`[{"id":"metric1","type":"gauge","value":10.5}]`)
 	req, _ := http.NewRequest("POST", "/updates/", bytes.NewBuffer(requestBody))
@@ -315,7 +315,7 @@ func Example_metricsListHandler() {
 		FileStoragePath: "tmp/metrics-db.json",
 		FlagRestore:     true,
 		DatabaseDSN:     "",
-		SecretKey:       "your-secret-key",
+		SecretKey:       "secret-key",
 	}
 
 	s := filememory.NewMemStorage(true, ss)
@@ -345,7 +345,7 @@ func ExampleGetMetricsJSONHandler() {
 	}
 	s := filememory.NewMemStorage(true, ss)
 	h := NewHandler(s)
-	router.POST("/value/", h.GetMetricsJSONHandler("your-secret-key"))
+	router.POST("/value/", h.GetMetricsJSONHandler("secret-key"))
 
 	ts := httptest.NewServer(router)
 	defer ts.Close()
