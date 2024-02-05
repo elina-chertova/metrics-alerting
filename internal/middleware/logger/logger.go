@@ -50,11 +50,14 @@ func RequestLogger() gin.HandlerFunc {
 		t := time.Now()
 		c.Next()
 		var size any
-		if c.Request.Method == http.MethodPost {
+
+		switch c.Request.Method {
+		case http.MethodPost:
 			size = c.Request.ContentLength
-		} else if c.Request.Method == http.MethodGet {
+		case http.MethodGet:
 			size = c.Writer.Size()
 		}
+
 		latency := time.Since(t)
 		Log.Info(
 			"got HTTP request info",

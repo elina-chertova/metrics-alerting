@@ -80,7 +80,7 @@ func ExtractMetrics(s *filememory.MemStorage) error {
 		"PauseTotalNs":  float64(m.PauseTotalNs),
 		"NumGC":         float64(m.NumGC),
 		"NumForcedGC":   float64(m.NumForcedGC),
-		"GCCPUFraction": float64(m.GCCPUFraction),
+		"GCCPUFraction": m.GCCPUFraction,
 		"RandomValue":   generator.Float64(),
 	}
 	for name, value := range metricsGauge {
