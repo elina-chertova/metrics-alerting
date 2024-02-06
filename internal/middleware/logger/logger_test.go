@@ -1,6 +1,10 @@
 package logger
 
 import (
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap/zaptest"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"go.uber.org/zap"
@@ -45,4 +49,26 @@ func TestLogInit(t *testing.T) {
 			}
 		},
 	)
+}
+
+func TestRequestLoggerMiddleware(t *testing.T) {
+	testLogger := zaptest.NewLogger(t)
+	Log = testLogger
+
+	router := gin.New()
+	router.Use(RequestLogger())
+
+	router.GET(
+		"/test", func(c *gin.Context) {
+			c.String(http.StatusOK, "test")
+		},
+	)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/test", nil)
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
 }
