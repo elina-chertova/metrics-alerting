@@ -16,6 +16,12 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 )
 
+var (
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
+)
+
 func sendMetricsWorker(storage *filememory.MemStorage, worker *Worker, stopChan <-chan struct{}) {
 	worker.once.Do(
 		func() {
@@ -111,6 +117,10 @@ type Worker struct {
 }
 
 func main() {
+	fmt.Printf("Build version:%s\n", buildVersion)
+	fmt.Printf("Build date:%s\n", buildDate)
+	fmt.Printf("Build commit:%s\n", buildCommit)
+
 	w := &Worker{
 		settings: config.NewSettings(),
 		config:   config.NewAgent(),

@@ -7,6 +7,8 @@ package main
 import (
 	"fmt"
 	"go/ast"
+	"strings"
+
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/printf"
@@ -16,7 +18,6 @@ import (
 	"honnef.co/go/tools/simple"
 	"honnef.co/go/tools/staticcheck"
 	"honnef.co/go/tools/stylecheck"
-	"strings"
 )
 
 // main is the entry point of the staticlint tool. It initializes and executes the multichecker

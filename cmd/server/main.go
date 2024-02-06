@@ -1,6 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/pprof"
+
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/handlers"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
@@ -9,11 +13,19 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/db"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"net/http/pprof"
+)
+
+var (
+	buildVersion = "N/A"
+	buildDate    = "N/A"
+	buildCommit  = "N/A"
 )
 
 func main() {
+	fmt.Printf("Build version:%s\n", buildVersion)
+	fmt.Printf("Build date:%s\n", buildDate)
+	fmt.Printf("Build commit:%s\n", buildCommit)
+
 	if err := run(); err != nil {
 		panic(err)
 	}
