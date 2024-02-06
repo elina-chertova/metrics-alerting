@@ -17,21 +17,9 @@ type gzipWriter struct {
 	Writer io.Writer
 }
 
-// gzipReader wraps an io.ReadCloser and a gzip.Reader to facilitate reading gzip
-// compressed data from HTTP requests.
-type gzipReader struct {
-	io.ReadCloser
-	Reader *gzip.Reader
-}
-
 // Write compresses the given byte slice and writes it to the HTTP response.
 func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
-}
-
-// Read decompresses data from the HTTP request body and places it into the provided byte slice.
-func (r gzipReader) Read(p []byte) (n int, err error) {
-	return r.Reader.Read(p)
 }
 
 // GzipHandle returns a Gin middleware function for handling gzip compression.
