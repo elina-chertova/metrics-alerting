@@ -1,8 +1,14 @@
 package request
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"github.com/stretchr/testify/require"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,6 +24,55 @@ func TestSendRequest(t *testing.T) {
 	)
 	defer server.Close()
 
-	err := sendRequest("application/json", false, server.URL, nil, "")
+	err := generateTestKeys()
+	require.NoError(t, err)
+
+	publicKeyPath := "publicKey.pem"
+	privateKeyPath := "privateKey.pem"
+
+	err = sendRequest("application/json", false, server.URL, nil, "", publicKeyPath)
 	assert.NoError(t, err)
+	os.Remove(publicKeyPath)
+	os.Remove(privateKeyPath)
+}
+
+func generateTestKeys() error {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return err
+	}
+
+	privKeyBytes, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		return err
+	}
+	privateFile, err := os.Create("privateKey.pem")
+	if err != nil {
+		return err
+	}
+	defer privateFile.Close()
+	if err := pem.Encode(
+		privateFile,
+		&pem.Block{Type: "PRIVATE KEY", Bytes: privKeyBytes},
+	); err != nil {
+		return err
+	}
+
+	pubKeyBytes, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
+	if err != nil {
+		return err
+	}
+	publicFile, err := os.Create("publicKey.pem")
+	if err != nil {
+		return err
+	}
+	defer publicFile.Close()
+	if err := pem.Encode(
+		publicFile,
+		&pem.Block{Type: "PUBLIC KEY", Bytes: pubKeyBytes},
+	); err != nil {
+		return err
+	}
+
+	return nil
 }
