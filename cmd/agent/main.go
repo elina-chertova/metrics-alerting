@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	_ "net/http/pprof"
@@ -22,7 +25,13 @@ var (
 	buildCommit  = "N/A"
 )
 
-func sendMetricsWorker(storage *filememory.MemStorage, worker *Worker, stopChan <-chan struct{}) {
+func sendMetricsWorker(
+	storage *filememory.MemStorage,
+	worker *Worker,
+	stopChan <-chan struct{},
+	wg *sync.WaitGroup,
+) {
+	defer wg.Done()
 	worker.once.Do(
 		func() {
 			if worker.settings.IsSendBatch {
@@ -45,6 +54,7 @@ func sendMetricsWorker(storage *filememory.MemStorage, worker *Worker, stopChan 
 		for {
 			select {
 			case <-stopChan:
+				return
 			default:
 			}
 
@@ -77,10 +87,13 @@ func extractMetricsWorker(
 	storage *filememory.MemStorage,
 	worker *Worker,
 	stopChan <-chan struct{},
+	wg *sync.WaitGroup,
 ) {
+	defer wg.Done()
 	for {
 		select {
 		case <-stopChan:
+			return
 		default:
 		}
 		err := st.ExtractMetrics(storage)
@@ -96,10 +109,13 @@ func extractOSMetricsWorker(
 	storage *filememory.MemStorage,
 	worker *Worker,
 	stopChan <-chan struct{},
+	wg *sync.WaitGroup,
 ) {
+	defer wg.Done()
 	for {
 		select {
 		case <-stopChan:
+			return
 		default:
 		}
 		err := st.ExtractOSMetrics(storage)
@@ -129,17 +145,39 @@ func main() {
 	logger.LogInit("info")
 	storage := filememory.NewMemStorage(false, nil)
 	stopCh := make(chan struct{})
-	var numSendWorkers = w.config.RateLimit
-	var numExtractWorkers = w.config.RateLimit
+
+	var wg sync.WaitGroup
+	startWorkers(storage, w, stopCh, &wg)
+
+	waitForSignals(stopCh)
+
+	wg.Wait()
+}
+
+func startWorkers(
+	storage *filememory.MemStorage,
+	w *Worker,
+	stopCh <-chan struct{},
+	wg *sync.WaitGroup,
+) {
+	numSendWorkers := w.config.RateLimit
+	numExtractWorkers := w.config.RateLimit
+
+	wg.Add(numSendWorkers + 2*numExtractWorkers)
 
 	for sw := 0; sw < numSendWorkers; sw++ {
-		go sendMetricsWorker(storage, w, stopCh)
+		go sendMetricsWorker(storage, w, stopCh, wg)
 	}
 	for ew := 0; ew < numExtractWorkers; ew++ {
-		go extractMetricsWorker(storage, w, stopCh)
-		go extractOSMetricsWorker(storage, w, stopCh)
+		go extractMetricsWorker(storage, w, stopCh, wg)
+		go extractOSMetricsWorker(storage, w, stopCh, wg)
 	}
+}
 
+func waitForSignals(stopCh chan<- struct{}) {
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	<-sigint
 	close(stopCh)
-	select {}
 }
