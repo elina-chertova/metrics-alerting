@@ -61,18 +61,18 @@ func sendRequest(
 	headers := make(map[string]string)
 	headers["Content-Type"] = contentType
 
-	encryptedJsonBody, err := asymencrypt.EncryptDataWithPublicKey(jsonBody, publicKey)
+	encryptedJSONBody, err := asymencrypt.EncryptDataWithPublicKey(jsonBody, publicKey)
 	if err != nil {
 		log.Fatalf("Failed to encrypt data: %v", err)
 	}
 
 	if secretKey != "" {
-		hashBody := security.Hash(string(encryptedJsonBody), []byte(secretKey))
+		hashBody := security.Hash(string(encryptedJSONBody), []byte(secretKey))
 		headers["HashSHA256"] = hashBody
 	}
 
 	if isCompress {
-		compressedData := compressData(encryptedJsonBody)
+		compressedData := compressData(encryptedJSONBody)
 		headers["Content-Encoding"] = "gzip"
 		ro = &grequests.RequestOptions{
 			Headers:     headers,
@@ -81,7 +81,7 @@ func sendRequest(
 	} else {
 		ro = &grequests.RequestOptions{
 			Headers: headers,
-			JSON:    encryptedJsonBody,
+			JSON:    encryptedJSONBody,
 		}
 	}
 
