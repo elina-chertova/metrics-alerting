@@ -6,12 +6,13 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
-
+	"github.com/elina-chertova/metrics-alerting.git/internal/asymencrypt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/security"
 	"github.com/levigross/grequests"
+	"log"
 )
 
 var (
@@ -54,18 +55,24 @@ func sendRequest(
 	url string,
 	jsonBody []byte,
 	secretKey string,
+	publicKey string,
 ) error {
 	var ro *grequests.RequestOptions
 	headers := make(map[string]string)
 	headers["Content-Type"] = contentType
 
+	encryptedJsonBody, err := asymencrypt.EncryptDataWithPublicKey(jsonBody, publicKey)
+	if err != nil {
+		log.Fatalf("Failed to encrypt data: %v", err)
+	}
+
 	if secretKey != "" {
-		hashBody := security.Hash(string(jsonBody), []byte(secretKey))
+		hashBody := security.Hash(string(encryptedJsonBody), []byte(secretKey))
 		headers["HashSHA256"] = hashBody
 	}
 
 	if isCompress {
-		compressedData := compressData(jsonBody)
+		compressedData := compressData(encryptedJsonBody)
 		headers["Content-Encoding"] = "gzip"
 		ro = &grequests.RequestOptions{
 			Headers:     headers,
@@ -74,7 +81,7 @@ func sendRequest(
 	} else {
 		ro = &grequests.RequestOptions{
 			Headers: headers,
-			JSON:    jsonBody,
+			JSON:    encryptedJsonBody,
 		}
 	}
 

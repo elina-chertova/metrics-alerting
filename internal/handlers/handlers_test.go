@@ -172,7 +172,7 @@ func TestMetricsJSONHandler(t *testing.T) {
 				router := gin.Default()
 				st := filememory.NewMemStorage(false, nil)
 				h := NewHandler(st)
-				router.POST("/update/", h.MetricsJSONHandler(""))
+				router.POST("/update/", h.MetricsJSONHandler("", ""))
 
 				request := httptest.NewRequest(
 					http.MethodPost,
@@ -294,7 +294,7 @@ func Example_updateBatchMetrics() {
 	s := filememory.NewMemStorage(true, ss)
 	h := NewHandler(s)
 
-	router.POST("/updates/", h.UpdateBatchMetrics("secret-key"))
+	router.POST("/updates/", h.UpdateBatchMetrics("secret-key", ""))
 
 	requestBody := []byte(`[{"id":"metric1","type":"gauge","value":10.5}]`)
 	req, _ := http.NewRequest("POST", "/updates/", bytes.NewBuffer(requestBody))
