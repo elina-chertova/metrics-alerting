@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"github.com/goccy/go-json"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -44,41 +45,9 @@ func ParseAgentFlags(a *Agent) {
 	)
 	configFilePathAlt := flag.String("config", "", "path to config file (alternative)")
 	flag.Parse()
-
-	finalConfigPath := *configFilePath
-	if *configFilePathAlt != "" {
-		finalConfigPath = *configFilePathAlt
-	}
-	if finalConfigPath != "" {
-		file, err := os.ReadFile(finalConfigPath)
-		if err == nil {
-			var jsonConfig AgentConfigJSON
-			if err := json.Unmarshal(file, &jsonConfig); err == nil {
-				if flag.Lookup("a").Value.String() == "localhost:8080" {
-					a.FlagAddress = jsonConfig.Address
-				}
-
-				if flag.CommandLine.Lookup("p").Value.String() == strconv.Itoa(2) && jsonConfig.PollInterval != "" {
-					if dur, err := time.ParseDuration(jsonConfig.PollInterval); err == nil {
-						a.PollInterval = int(dur.Seconds())
-					} else {
-						panic(err)
-					}
-				}
-
-				if flag.CommandLine.Lookup("r").Value.String() == strconv.Itoa(10) && jsonConfig.ReportInterval != "" {
-					if dur, err := time.ParseDuration(jsonConfig.ReportInterval); err == nil {
-						a.ReportInterval = int(dur.Seconds())
-					} else {
-						panic(err)
-					}
-				}
-
-				if flag.Lookup("crypto-key").Value.String() == "" {
-					a.CryptoKey = jsonConfig.CryptoKey
-				}
-			}
-		}
+	err := readFromJSON(a, configFilePath, configFilePathAlt)
+	if err != nil {
+		log.Println("Error reading JSON: ", err)
 	}
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
@@ -100,6 +69,46 @@ func ParseAgentFlags(a *Agent) {
 		a.CryptoKey = envCryptoKey
 	}
 
+}
+
+func readFromJSON(a *Agent, configFilePath *string, configFilePathAlt *string) error {
+	finalConfigPath := *configFilePath
+	if *configFilePathAlt != "" {
+		finalConfigPath = *configFilePathAlt
+	}
+	if finalConfigPath != "" {
+		file, err := os.ReadFile(finalConfigPath)
+		if err != nil {
+			return err
+		}
+		var jsonConfig AgentConfigJSON
+		if err := json.Unmarshal(file, &jsonConfig); err == nil {
+			if flag.Lookup("a").Value.String() == "localhost:8080" {
+				a.FlagAddress = jsonConfig.Address
+			}
+
+			if flag.CommandLine.Lookup("p").Value.String() == strconv.Itoa(2) && jsonConfig.PollInterval != "" {
+				if dur, err := time.ParseDuration(jsonConfig.PollInterval); err == nil {
+					a.PollInterval = int(dur.Seconds())
+				} else {
+					return err
+				}
+			}
+
+			if flag.CommandLine.Lookup("r").Value.String() == strconv.Itoa(10) && jsonConfig.ReportInterval != "" {
+				if dur, err := time.ParseDuration(jsonConfig.ReportInterval); err == nil {
+					a.ReportInterval = int(dur.Seconds())
+				} else {
+					return err
+				}
+			}
+
+			if flag.Lookup("crypto-key").Value.String() == "" {
+				a.CryptoKey = jsonConfig.CryptoKey
+			}
+		}
+	}
+	return nil
 }
 
 func NewAgent() *Agent {
