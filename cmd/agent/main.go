@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/elina-chertova/metrics-alerting.git/internal/asymencrypt"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -18,6 +20,50 @@ import (
 	r "github.com/elina-chertova/metrics-alerting.git/internal/request"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 )
+
+var (
+	wg     sync.WaitGroup
+	stopCh = make(chan struct{})
+)
+
+func cryptoKeyPing(cryptoKeyPath string) {
+	originalText := "test ping"
+	_, err := asymencrypt.EncryptDataWithPublicKey(
+		[]byte(originalText),
+		cryptoKeyPath,
+	)
+	if err != nil {
+		log.Printf("Failed to encrypt data: %v\n", err)
+		initiateGracefulShutdown()
+		return
+	}
+}
+
+func main() {
+	fmt.Printf("Build version:%s\n", buildVersion)
+	fmt.Printf("Build date:%s\n", buildDate)
+	fmt.Printf("Build commit:%s\n", buildCommit)
+
+	w := &Worker{
+		settings: config.NewSettings(),
+		config:   config.NewAgent(),
+	}
+
+	cryptoKeyPing(w.config.CryptoKey)
+
+	logger.LogInit("info")
+	storage := filememory.NewMemStorage(false, nil)
+
+	startWorkers(storage, w, stopCh, &wg)
+
+	waitForSignals(stopCh)
+
+	wg.Wait()
+}
+func initiateGracefulShutdown() {
+	close(stopCh)
+	wg.Wait()
+}
 
 var (
 	buildVersion = "N/A"
@@ -131,27 +177,6 @@ type Worker struct {
 	settings *config.Settings
 	config   *config.Agent
 	once     sync.Once
-}
-
-func main() {
-	fmt.Printf("Build version:%s\n", buildVersion)
-	fmt.Printf("Build date:%s\n", buildDate)
-	fmt.Printf("Build commit:%s\n", buildCommit)
-
-	w := &Worker{
-		settings: config.NewSettings(),
-		config:   config.NewAgent(),
-	}
-	logger.LogInit("info")
-	storage := filememory.NewMemStorage(false, nil)
-	stopCh := make(chan struct{})
-
-	var wg sync.WaitGroup
-	startWorkers(storage, w, stopCh, &wg)
-
-	waitForSignals(stopCh)
-
-	wg.Wait()
 }
 
 func startWorkers(

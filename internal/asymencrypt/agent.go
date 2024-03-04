@@ -17,12 +17,12 @@ func EncryptDataWithPublicKey(data []byte, publicKeyPath string) ([]byte, error)
 	pubBlock, _ := pem.Decode(publicKeyFile)
 	pubKeyValue, err := x509.ParsePKIXPublicKey(pubBlock.Bytes)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	pub := pubKeyValue.(*rsa.PublicKey)
 	encryptOAEP, err := rsa.EncryptOAEP(sha1.New(), rand.Reader, pub, data, nil)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	cipherByte := encryptOAEP
 	return cipherByte, err
