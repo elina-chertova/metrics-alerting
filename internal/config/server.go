@@ -2,18 +2,30 @@ package config
 
 import (
 	"flag"
+	"fmt"
+	"github.com/goccy/go-json"
 	"os"
 	"strconv"
+	"time"
 )
 
 type Server struct {
-	FlagAddress     string
-	StoreInterval   int
-	FileStoragePath string
-	FlagRestore     bool
-	DatabaseDSN     string
+	FlagAddress     string `json:"address"`
+	StoreInterval   int    `json:"store_interval"`
+	FileStoragePath string `json:"store_file"`
+	FlagRestore     bool   `json:"restore"`
+	DatabaseDSN     string `json:"database_dsn"`
 	SecretKey       string
-	CryptoKey       string
+	CryptoKey       string `json:"crypto_key"`
+}
+
+type ServerConfigJSON struct {
+	Address         string `json:"address"`
+	StoreInterval   string `json:"store_interval"`
+	FileStoragePath string `json:"store_file"`
+	Restore         bool   `json:"restore"`
+	DatabaseDSN     string `json:"database_dsn"`
+	CryptoKey       string `json:"crypto_key"`
 }
 
 func ParseServerFlags(s *Server) {
@@ -36,11 +48,62 @@ func ParseServerFlags(s *Server) {
 	flag.StringVar(
 		&s.CryptoKey,
 		"crypto-key",
-		"/Users/elinachertova/Downloads/privateKey.pem",
+		"",
 		"crypto key private",
 	)
 
+	configFilePath := flag.String(
+		"c",
+		"",
+		"path to config file",
+	)
+	configFilePathAlt := flag.String("config", "", "path to config file (alternative)")
 	flag.Parse()
+
+	finalConfigPath := *configFilePath
+	if *configFilePathAlt != "" {
+		finalConfigPath = *configFilePathAlt
+	}
+
+	if finalConfigPath != "" {
+		file, err := os.ReadFile(finalConfigPath)
+		if err != nil {
+			panic(err)
+		}
+
+		var jsonConfig ServerConfigJSON
+		if err := json.Unmarshal(file, &jsonConfig); err != nil {
+			panic(err)
+		}
+
+		if flag.Lookup("a").Value.String() == "localhost:8080" {
+			s.FlagAddress = jsonConfig.Address
+		}
+
+		if flag.CommandLine.Lookup("i").Value.String() == strconv.Itoa(300) && jsonConfig.StoreInterval != "" {
+			if dur, err := time.ParseDuration(jsonConfig.StoreInterval); err == nil {
+				s.StoreInterval = int(dur.Seconds())
+				fmt.Println("s.StoreInterval", s.StoreInterval)
+			} else {
+				panic(err)
+			}
+		}
+		if flag.Lookup("f").Value.String() == "tmp/metrics-db.json" {
+			s.FileStoragePath = jsonConfig.FileStoragePath
+		}
+		if !flag.Lookup("r").Value.(flag.Getter).Get().(bool) {
+			s.FlagRestore = jsonConfig.Restore
+			fmt.Println("s.FlagRestore", s.FlagRestore)
+		}
+		if flag.Lookup("d").Value.String() == "" {
+			s.DatabaseDSN = jsonConfig.DatabaseDSN
+			fmt.Println("s.DatabaseDSN", s.DatabaseDSN)
+		}
+		if flag.Lookup("crypto-key").Value.String() == "" {
+			s.CryptoKey = jsonConfig.CryptoKey
+		}
+	}
+
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
 		s.FlagAddress = envRunAddr
 	}

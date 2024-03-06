@@ -2,17 +2,26 @@ package config
 
 import (
 	"flag"
+	"github.com/goccy/go-json"
 	"os"
 	"strconv"
+	"time"
 )
 
 type Agent struct {
-	FlagAddress    string
-	PollInterval   int
-	ReportInterval int
+	FlagAddress    string `json:"address"`
+	PollInterval   int    `json:"poll_interval"`
+	ReportInterval int    `json:"report_interval"`
 	SecretKey      string
 	RateLimit      int
-	CryptoKey      string
+	CryptoKey      string `json:"crypto_key"`
+}
+
+type AgentConfigJSON struct {
+	Address        string `json:"address"`
+	PollInterval   string `json:"poll_interval"`
+	ReportInterval string `json:"report_interval"`
+	CryptoKey      string `json:"crypto_key"`
 }
 
 func ParseAgentFlags(a *Agent) {
@@ -24,10 +33,53 @@ func ParseAgentFlags(a *Agent) {
 	flag.StringVar(
 		&a.CryptoKey,
 		"crypto-key",
-		"/Users/elinachertova/Downloads/publicKey.pem",
+		"",
 		"crypto key public",
 	)
+
+	configFilePath := flag.String(
+		"c",
+		"",
+		"path to config file",
+	)
+	configFilePathAlt := flag.String("config", "", "path to config file (alternative)")
 	flag.Parse()
+
+	finalConfigPath := *configFilePath
+	if *configFilePathAlt != "" {
+		finalConfigPath = *configFilePathAlt
+	}
+	if finalConfigPath != "" {
+		file, err := os.ReadFile(finalConfigPath)
+		if err == nil {
+			var jsonConfig AgentConfigJSON
+			if err := json.Unmarshal(file, &jsonConfig); err == nil {
+				if flag.Lookup("a").Value.String() == "localhost:8080" {
+					a.FlagAddress = jsonConfig.Address
+				}
+
+				if flag.CommandLine.Lookup("p").Value.String() == strconv.Itoa(2) && jsonConfig.PollInterval != "" {
+					if dur, err := time.ParseDuration(jsonConfig.PollInterval); err == nil {
+						a.PollInterval = int(dur.Seconds())
+					} else {
+						panic(err)
+					}
+				}
+
+				if flag.CommandLine.Lookup("r").Value.String() == strconv.Itoa(10) && jsonConfig.ReportInterval != "" {
+					if dur, err := time.ParseDuration(jsonConfig.ReportInterval); err == nil {
+						a.ReportInterval = int(dur.Seconds())
+					} else {
+						panic(err)
+					}
+				}
+
+				if flag.Lookup("crypto-key").Value.String() == "" {
+					a.CryptoKey = jsonConfig.CryptoKey
+				}
+			}
+		}
+	}
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
 		a.FlagAddress = envRunAddr
