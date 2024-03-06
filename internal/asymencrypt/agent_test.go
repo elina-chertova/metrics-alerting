@@ -1,4 +1,4 @@
-package request
+package asymencrypt
 
 import (
 	"crypto/rand"
@@ -6,35 +6,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"net/http/httptest"
 	"os"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
-
-func TestSendRequest(t *testing.T) {
-	server := httptest.NewServer(
-		http.HandlerFunc(
-			func(w http.ResponseWriter, r *http.Request) {
-				w.WriteHeader(http.StatusOK)
-			},
-		),
-	)
-	defer server.Close()
-
-	err := generateTestKeys()
-	require.NoError(t, err)
-
-	publicKeyPath := "publicKey.pem"
-	privateKeyPath := "privateKey.pem"
-
-	err = sendRequest("application/json", false, server.URL, nil, "", publicKeyPath)
-	assert.NoError(t, err)
-	os.Remove(publicKeyPath)
-	os.Remove(privateKeyPath)
-}
 
 func generateTestKeys() error {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -75,4 +49,24 @@ func generateTestKeys() error {
 	}
 
 	return nil
+}
+
+func TestEncryptAndDecrypt(t *testing.T) {
+	err := generateTestKeys()
+	require.NoError(t, err)
+
+	originalText := "Hello, RSA encryption and decryption!"
+	publicKeyPath := "publicKey.pem"
+	privateKeyPath := "privateKey.pem"
+
+	encryptedText, err := EncryptDataWithPublicKey([]byte(originalText), publicKeyPath)
+	require.NoError(t, err)
+	require.NotEmpty(t, encryptedText)
+
+	decryptedText, err := DecryptDataWithPrivateKey(encryptedText, privateKeyPath)
+	require.NoError(t, err)
+	require.Equal(t, originalText, string(decryptedText))
+
+	os.Remove(publicKeyPath)
+	os.Remove(privateKeyPath)
 }

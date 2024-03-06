@@ -57,6 +57,7 @@ func sendMetricsWorker(storage *filememory.MemStorage, worker *Worker, stopChan 
 				worker.settings.IsCompress,
 				worker.settings.IsSendBatch,
 				worker.config.SecretKey,
+				worker.config.CryptoKey,
 			)
 			if err != nil {
 				logger.Log.Error(err.Error(), zap.String("method", "MetricsToServer"))

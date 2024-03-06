@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/elina-chertova/metrics-alerting.git/internal/asymencrypt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
@@ -68,17 +69,26 @@ func (db *HandlerDB) PingDB() gin.HandlerFunc {
 // UpdateBatchMetrics creates a gin.HandlerFunc that handles batch updates
 // of metric data. It processes JSON requests containing multiple metrics
 // and updates them in the storage.
-func (h *Handler) UpdateBatchMetrics(secretKey string) gin.HandlerFunc {
+func (h *Handler) UpdateBatchMetrics(secretKey string, privateKeyPath string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m []f.Metric
 
 		var reader io.Reader = c.Request.Body
 		body, err := io.ReadAll(reader)
-
 		if err != nil {
 			logger.Error(ErrReadReqBody.Error(), zap.String("method", c.Request.Method))
 			http.Error(c.Writer, ErrReadReqBody.Error(), http.StatusInternalServerError)
 			return
+		}
+
+		if privateKeyPath != "" {
+			decryptedBody, err := asymencrypt.DecryptDataWithPrivateKey(body, privateKeyPath)
+			if err != nil {
+				logger.Error("Failed to decrypt data", zap.String("method", c.Request.Method))
+				http.Error(c.Writer, "Failed to decrypt data", http.StatusInternalServerError)
+				return
+			}
+			body = decryptedBody
 		}
 
 		if err = json.Unmarshal(body, &m); err != nil {
@@ -264,7 +274,7 @@ func (h *Handler) GetMetricsTextPlainHandler(secretKey string) gin.HandlerFunc {
 // MetricsJSONHandler creates a gin.HandlerFunc for processing incoming metric data
 // in JSON format. The handler reads JSON formatted metric data from the request body,
 // updates or retrieves the metric in storage, and responds with the updated metric data.
-func (h *Handler) MetricsJSONHandler(secretKey string) gin.HandlerFunc {
+func (h *Handler) MetricsJSONHandler(secretKey string, privateKeyPath string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var (
 			m   f.Metric
@@ -278,6 +288,16 @@ func (h *Handler) MetricsJSONHandler(secretKey string) gin.HandlerFunc {
 			logger.Error("error reading request body", zap.String("method", c.Request.Method))
 			http.Error(c.Writer, "error reading request body", http.StatusInternalServerError)
 			return
+		}
+
+		if privateKeyPath != "" {
+			decryptedBody, err := asymencrypt.DecryptDataWithPrivateKey(body, privateKeyPath)
+			if err != nil {
+				logger.Error("Failed to decrypt data", zap.String("method", c.Request.Method))
+				http.Error(c.Writer, "Failed to decrypt data", http.StatusInternalServerError)
+				return
+			}
+			body = decryptedBody
 		}
 
 		if err = json.Unmarshal(body, &m); err != nil {

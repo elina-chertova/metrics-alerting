@@ -45,12 +45,12 @@ func run() error {
 	router.POST(
 		"/updates/",
 		security.HashCheckMiddleware(serverConfig.SecretKey),
-		h.UpdateBatchMetrics(serverConfig.SecretKey),
+		h.UpdateBatchMetrics(serverConfig.SecretKey, serverConfig.CryptoKey),
 	)
 	router.POST(
 		"/update/",
 		security.HashCheckMiddleware(serverConfig.SecretKey),
-		h.MetricsJSONHandler(serverConfig.SecretKey),
+		h.MetricsJSONHandler(serverConfig.SecretKey, serverConfig.CryptoKey),
 	)
 	router.POST("/update/:metricType/:metricName/:metricValue", h.MetricsTextPlainHandler())
 	router.GET(
