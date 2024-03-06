@@ -81,7 +81,7 @@ func (h *Handler) UpdateBatchMetrics(secretKey string) gin.HandlerFunc {
 			return
 		}
 
-		if err := json.Unmarshal(body, &m); err != nil {
+		if err = json.Unmarshal(body, &m); err != nil {
 			logger.Error(ErrInvalidJSON.Error(), zap.String("method", c.Request.Method))
 			http.Error(c.Writer, ErrInvalidJSON.Error(), http.StatusBadRequest)
 			return
@@ -146,7 +146,7 @@ func (h *Handler) GetMetricsJSONHandler(secretKey string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m f.Metric
 		var err error
-		if err := c.ShouldBindJSON(&m); err != nil {
+		if err = c.ShouldBindJSON(&m); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
@@ -280,8 +280,7 @@ func (h *Handler) MetricsJSONHandler(secretKey string) gin.HandlerFunc {
 			return
 		}
 
-		if err := json.Unmarshal(body, &m); err != nil {
-
+		if err = json.Unmarshal(body, &m); err != nil {
 			logger.Error(ErrInvalidJSON.Error(), zap.String("method", c.Request.Method))
 			http.Error(c.Writer, ErrInvalidJSON.Error(), http.StatusBadRequest)
 			return

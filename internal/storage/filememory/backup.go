@@ -34,9 +34,9 @@ func (s *MemStorage) backup(fileName string) {
 		logger.Log.Error(BackupError{Err: err, Message: "failed to marshal data"}.Error())
 	}
 
-	if _, err := os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
+	if _, err = os.Stat(fileName); errors.Is(err, os.ErrNotExist) {
 		dir := filepath.Dir(fileName)
-		if err := os.MkdirAll(dir, 0777); err != nil {
+		if err = os.MkdirAll(dir, 0777); err != nil {
 			logger.Log.Error(BackupError{Err: err, Message: "failed to create directory"}.Error())
 		}
 	}

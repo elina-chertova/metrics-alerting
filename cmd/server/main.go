@@ -1,10 +1,6 @@
 package main
 
 import (
-	"net/http/pprof"
-
-	"github.com/gin-gonic/gin"
-
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/handlers"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
@@ -12,8 +8,9 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/security"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/db"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
-
+	"github.com/gin-gonic/gin"
 	"net/http"
+	"net/http/pprof"
 )
 
 func main() {

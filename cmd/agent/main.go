@@ -25,14 +25,12 @@ func sendMetricsWorker(storage *filememory.MemStorage, worker *Worker, stopChan 
 					worker.config.FlagAddress,
 					"updates",
 				)
-				fmt.Println("worker.settings.URL", worker.settings.URL)
 			} else {
 				worker.settings.URL = fmt.Sprintf(
 					worker.settings.URL,
 					worker.config.FlagAddress,
 					"update",
 				)
-				fmt.Println("worker.settings.URL2", worker.settings.URL)
 			}
 		},
 	)

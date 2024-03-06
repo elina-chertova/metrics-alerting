@@ -185,9 +185,10 @@ func (db DB) GetMetrics() (map[string]int64, map[string]float64) {
 // - A GORM scope function for the specific metric type.
 func typeCondition(param formatter.Metric) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		if param.MType == config.Counter {
+		switch param.MType {
+		case config.Counter:
 			return db.Where("type = ?", config.Counter)
-		} else if param.MType == config.Gauge {
+		case config.Gauge:
 			return db.Where("type = ?", config.Gauge)
 		}
 		return db
