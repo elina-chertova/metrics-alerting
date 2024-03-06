@@ -44,7 +44,7 @@ func RequestLogger() gin.HandlerFunc {
 			size = c.Writer.Size()
 		}
 		latency := time.Since(t)
-		Info(
+		Log.Info(
 			"got HTTP request info",
 			zap.String("method", c.Request.Method),
 			zap.String("path", c.Request.RequestURI),

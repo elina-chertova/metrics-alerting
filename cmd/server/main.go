@@ -5,6 +5,7 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/handlers"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
+	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/security"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/db"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"github.com/gin-gonic/gin"
@@ -25,23 +26,25 @@ func run() error {
 
 	router.Use(logger.RequestLogger())
 	router.Use(compression.GzipHandle())
-	var h *handlers.Handler
 
-	if serverConfig.DatabaseDSN != "" {
-		connection := db.Connect(serverConfig.DatabaseDSN)
-		database := handlers.NewDatabase(connection)
-		h = handlers.NewHandler(connection)
-		router.GET("/ping", database.PingDB())
-	} else {
-		s := filememory.NewMemStorage(true, serverConfig)
-		h = handlers.NewHandler(s)
-	}
+	h := buildStorage(serverConfig, router)
 
-	router.POST("/updates/", h.UpdateBatchMetrics())
-	router.POST("/update/", h.MetricsJSONHandler())
+	router.POST(
+		"/updates/",
+		security.HashCheckMiddleware(serverConfig.SecretKey),
+		h.UpdateBatchMetrics(serverConfig.SecretKey),
+	)
+	router.POST(
+		"/update/",
+		security.HashCheckMiddleware(serverConfig.SecretKey),
+		h.MetricsJSONHandler(serverConfig.SecretKey),
+	)
 	router.POST("/update/:metricType/:metricName/:metricValue", h.MetricsTextPlainHandler())
-	router.GET("/value/:metricType/:metricName", h.GetMetricsTextPlainHandler())
-	router.POST("/value/", h.GetMetricsJSONHandler())
+	router.GET(
+		"/value/:metricType/:metricName",
+		h.GetMetricsTextPlainHandler(serverConfig.SecretKey),
+	)
+	router.POST("/value/", h.GetMetricsJSONHandler(serverConfig.SecretKey))
 	router.GET("/", h.MetricsListHandler())
 	router.NoRoute(
 		func(c *gin.Context) {
@@ -54,4 +57,17 @@ func run() error {
 	}
 
 	return nil
+}
+
+func buildStorage(config *config.Server, router *gin.Engine) *handlers.Handler {
+	if config.DatabaseDSN != "" {
+		connection := db.Connect(config.DatabaseDSN)
+		database := handlers.NewHandlerDB(connection)
+		router.GET("/ping", database.PingDB())
+		return handlers.NewHandler(connection)
+
+	} else {
+		s := filememory.NewMemStorage(true, config)
+		return handlers.NewHandler(s)
+	}
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/formatter"
+	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"gorm.io/gorm"
 )
@@ -29,7 +30,7 @@ func (db DB) UpdateCounter(name string, value int64, ok bool) error {
 	if ok {
 		result := db.Database.Scopes(TypeIsCounter).Where("name = ?", name).Order("").First(&m)
 		if result.Error != nil {
-			fmt.Printf("%s: %v", ErrRetrieveMetric, result.Error)
+			logger.Log.Error(fmt.Sprintf("%s: %v", ErrRetrieveMetric, result.Error))
 		}
 
 		m.Delta += value
@@ -167,7 +168,7 @@ func (db DB) InsertBatchMetrics(metrics []formatter.Metric) error {
 				)
 			}
 			if data.Error != nil {
-				fmt.Printf("%s: %v", ErrCreateMetric, data.Error)
+				logger.Log.Error(fmt.Sprintf("%s: %v", ErrCreateMetric, data.Error))
 			}
 		} else {
 			var result *gorm.DB
@@ -179,7 +180,7 @@ func (db DB) InsertBatchMetrics(metrics []formatter.Metric) error {
 			}
 			result = tx.Save(&m)
 			if result.Error != nil {
-				fmt.Printf("%s: %v", ErrSaveMetric, result.Error)
+				logger.Log.Error(fmt.Sprintf("%s: %v", ErrSaveMetric, result.Error))
 			}
 		}
 	}

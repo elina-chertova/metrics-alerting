@@ -52,11 +52,7 @@ func (s *MemStorage) unlockGauge() {
 func (s *MemStorage) UpdateCounter(name string, value int64, ok bool) error {
 	s.lockCounter()
 	defer s.unlockCounter()
-	if ok {
-		s.Counter[name] += value
-	} else {
-		s.Counter[name] = value
-	}
+	s.Counter[name] += value
 	return nil
 }
 

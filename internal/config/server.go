@@ -12,6 +12,7 @@ type Server struct {
 	FileStoragePath string
 	FlagRestore     bool
 	DatabaseDSN     string
+	SecretKey       string
 }
 
 func ParseServerFlags(s *Server) {
@@ -30,6 +31,7 @@ func ParseServerFlags(s *Server) {
 		"",
 		"Database DSN. Ex: postgres://postgres:123qwe@localhost:5432/metrics_db",
 	)
+	flag.StringVar(&s.SecretKey, "k", "", "secret key for hash")
 
 	flag.Parse()
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
@@ -46,6 +48,9 @@ func ParseServerFlags(s *Server) {
 	}
 	if envRunDSN := os.Getenv("DATABASE_DSN"); envRunDSN != "" {
 		s.DatabaseDSN = envRunDSN
+	}
+	if envRunKey := os.Getenv("KEY"); envRunKey != "" {
+		s.SecretKey = envRunKey
 	}
 
 }

@@ -1,4 +1,4 @@
-package storage
+package metricextractor
 
 import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
@@ -10,7 +10,10 @@ func TestExtractMetrics(t *testing.T) {
 		Gauge:   make(map[string]float64),
 		Counter: make(map[string]int64),
 	}
-	ExtractMetrics(st)
+	err := ExtractMetrics(st)
+	if err != nil {
+		return
+	}
 
 	if len(st.Counter) <= 0 || len(st.Gauge) <= 0 {
 		t.Errorf(

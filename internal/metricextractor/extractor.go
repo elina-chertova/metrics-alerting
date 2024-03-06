@@ -1,13 +1,36 @@
-package storage
+package metricextractor
 
 import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 	"math/rand"
 	"runtime"
 	"time"
 )
 
-func ExtractMetrics(s *filememory.MemStorage) {
+func ExtractOSMetrics(s *filememory.MemStorage) error {
+	v, _ := mem.VirtualMemory()
+	CPUUtilized, err := cpu.Percent(time.Second, true)
+	if err != nil {
+		return err
+	}
+	metricsGauge := map[string]float64{
+		"TotalMemory":     float64(v.Total),
+		"FreeMemory":      float64(v.Free),
+		"CPUutilization1": CPUUtilized[0],
+	}
+
+	for name, value := range metricsGauge {
+		err := s.UpdateGauge(name, value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func ExtractMetrics(s *filememory.MemStorage) error {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 	generator := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -42,7 +65,14 @@ func ExtractMetrics(s *filememory.MemStorage) {
 		"RandomValue":   generator.Float64(),
 	}
 	for name, value := range metricsGauge {
-		s.UpdateGauge(name, value)
+		err := s.UpdateGauge(name, value)
+		if err != nil {
+			return err
+		}
 	}
-	s.UpdateCounter("PollCount", 1, true)
+	err := s.UpdateCounter("PollCount", 1, true)
+	if err != nil {
+		return err
+	}
+	return nil
 }
