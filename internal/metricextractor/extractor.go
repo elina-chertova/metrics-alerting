@@ -1,14 +1,24 @@
+// Package metricextractor contains functions for extracting system and application metrics.
 package metricextractor
 
 import (
-	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
-	"github.com/shirou/gopsutil/v3/cpu"
-	"github.com/shirou/gopsutil/v3/mem"
 	"math/rand"
 	"runtime"
 	"time"
+
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
+	"github.com/shirou/gopsutil/v3/cpu"
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
+// ExtractOSMetrics extracts operating system level metrics such as total memory,
+// free memory, and CPU utilization.
+//
+// Parameters:
+// - s: A memory storage instance where the extracted metrics will be stored.
+//
+// Returns:
+// - An error if there is an issue in extracting metrics or updating the storage.
 func ExtractOSMetrics(s *filememory.MemStorage) error {
 	v, _ := mem.VirtualMemory()
 	CPUUtilized, err := cpu.Percent(time.Second, true)
@@ -30,6 +40,15 @@ func ExtractOSMetrics(s *filememory.MemStorage) error {
 	return nil
 }
 
+// ExtractMetrics gathers various runtime metrics of the Go application, including
+// memory allocation, GC statistics, and other system metrics. It also generates a
+// random value as part of the metrics.
+//
+// Parameters:
+// - s: A memory storage instance where the extracted metrics will be stored.
+//
+// Returns:
+// - An error if there is an issue in extracting metrics or updating the storage.
 func ExtractMetrics(s *filememory.MemStorage) error {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)

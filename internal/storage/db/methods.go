@@ -2,13 +2,14 @@ package db
 
 import (
 	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
 )
 
 type DB struct {

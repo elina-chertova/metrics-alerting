@@ -1,8 +1,13 @@
+// Package db provides database operations for managing metrics data.
+// It includes functions to update, retrieve, and insert metrics into a database,
+// supporting both gauge and counter types. This package uses the GORM library
+// for database interactions, offering a high-level abstraction for database operations.
 package db
 
 import (
 	"errors"
 	"fmt"
+
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
@@ -17,14 +22,25 @@ var (
 	ErrCommitTransaction = errors.New("transaction commit error")
 )
 
+// TypeIsCounter is a GORM scope function that filters database queries to return only counter metrics.
 func TypeIsCounter(db *gorm.DB) *gorm.DB {
 	return db.Where("type = ?", config.Counter)
 }
 
+// TypeIsGauge is a GORM scope function that filters database queries to return only gauge metrics.
 func TypeIsGauge(db *gorm.DB) *gorm.DB {
 	return db.Where("type = ?", config.Gauge)
 }
 
+// UpdateCounter updates the value of a counter metric in the database.
+//
+// Parameters:
+// - name: The name of the counter metric.
+// - value: The value to be added to the counter.
+// - ok: A boolean indicating if the metric already exists in the database.
+//
+// Returns:
+// - An error if the update or creation of the metric fails.
 func (db DB) UpdateCounter(name string, value int64, ok bool) error {
 	var m Metrics
 	if ok {
@@ -56,6 +72,14 @@ func (db DB) UpdateCounter(name string, value int64, ok bool) error {
 	return nil
 }
 
+// UpdateGauge updates the value of a gauge metric in the database.
+//
+// Parameters:
+// - name: The name of the gauge metric.
+// - value: The value to be set for the gauge metric.
+//
+// Returns:
+// - An error if the update or creation of the metric fails.
 func (db DB) UpdateGauge(name string, value float64) error {
 	var m Metrics
 
@@ -84,6 +108,15 @@ func (db DB) UpdateGauge(name string, value float64) error {
 	return nil
 }
 
+// GetCounter retrieves the value of a counter metric from the database.
+//
+// Parameters:
+// - name: The name of the counter metric to retrieve.
+//
+// Returns:
+// - The value of the counter metric.
+// - A boolean indicating if the metric was found in the database.
+// - An error if the retrieval fails.
 func (db DB) GetCounter(name string) (int64, bool, error) {
 	var m Metrics
 	result := db.Database.Scopes(TypeIsCounter).Where("name = ?", name).Order("").First(&m)
@@ -93,6 +126,15 @@ func (db DB) GetCounter(name string) (int64, bool, error) {
 	return m.Delta, true, nil
 }
 
+// GetGauge retrieves the value of a gauge metric from the database.
+//
+// Parameters:
+// - name: The name of the gauge metric to retrieve.
+//
+// Returns:
+// - The value of the gauge metric.
+// - A boolean indicating if the metric was found in the database.
+// - An error if the retrieval fails.
 func (db DB) GetGauge(name string) (float64, bool, error) {
 	var m Metrics
 	result := db.Database.Scopes(TypeIsGauge).Where("name = ?", name).Order("").First(&m)
@@ -102,6 +144,11 @@ func (db DB) GetGauge(name string) (float64, bool, error) {
 	return m.Value, true, nil
 }
 
+// GetMetrics retrieves all counter and gauge metrics from the database.
+//
+// Returns:
+// - A map of counter metrics with their names and values.
+// - A map of gauge metrics with their names and values.
 func (db DB) GetMetrics() (map[string]int64, map[string]float64) {
 	var counterStruct []struct {
 		Name  string
@@ -128,6 +175,14 @@ func (db DB) GetMetrics() (map[string]int64, map[string]float64) {
 	return m.Counter, m.Gauge
 }
 
+// typeCondition is a helper function that returns a GORM scope function
+// based on the metric type.
+//
+// Parameters:
+// - param: A formatter.Metric struct used to determine the metric type.
+//
+// Returns:
+// - A GORM scope function for the specific metric type.
 func typeCondition(param formatter.Metric) func(*gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		if param.MType == config.Counter {
@@ -139,6 +194,13 @@ func typeCondition(param formatter.Metric) func(*gorm.DB) *gorm.DB {
 	}
 }
 
+// InsertBatchMetrics inserts multiple metrics into the database in a batch.
+//
+// Parameters:
+// - metrics: A slice of formatter.Metric containing the metrics to be inserted.
+//
+// Returns:
+// - An error if the batch insert or update operation fails.
 func (db DB) InsertBatchMetrics(metrics []formatter.Metric) error {
 	tx := db.Database.Begin()
 	defer tx.Rollback()

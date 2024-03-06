@@ -1,16 +1,32 @@
+// Package request contains functions for sending metric data to a server.
 package request
 
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
+	"time"
+
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/formatter"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
-	"sync"
-	"time"
 )
 
+// MetricsToServer sends metrics stored in memory to a specified server.
+// It supports sending metrics in batch or individually, with optional compression,
+// and handles different content types (JSON, TextPlain).
+//
+// Parameters:
+// - s: The in-memory storage containing the metrics to be sent.
+// - contentType: The MIME type of the content to be sent.
+// - url: The URL of the server where the metrics are to be sent.
+// - isCompress: Indicates whether the data should be compressed before sending.
+// - isSendBatch: Determines whether to send metrics in batches.
+// - secretKey: A secret key used for secure communication (optional).
+//
+// Returns:
+// - An error if sending the metrics fails or if an invalid content type is specified.
 func MetricsToServer(
 	s *filememory.MemStorage,
 	contentType string,
@@ -33,6 +49,18 @@ func MetricsToServer(
 	}
 }
 
+// BackoffSendRequest attempts to send a request to a server with exponential backoff
+// retry strategy.
+//
+// Parameters:
+// - contentType: The MIME type of the content to be sent.
+// - url: The URL of the server where the data is to be sent.
+// - isCompress: Indicates whether the data should be compressed.
+// - out: The byte slice of the data to be sent.
+// - secretKey: A secret key used for secure communication (optional).
+//
+// Returns:
+// - An error if all attempts to send the request fail.
 func BackoffSendRequest(
 	contentType, url string,
 	isCompress bool,
@@ -70,6 +98,17 @@ func BackoffSendRequest(
 	return nil
 }
 
+// metricsToServerBatch sends a batch of all collected metrics to the specified server URL.
+// It converts the metrics stored in memory into a JSON format and sends them in a single request.
+//
+// Parameters:
+// - s: An instance of in-memory storage containing the metrics to be sent.
+// - url: The server URL to which the metrics are to be sent.
+// - isCompress: Indicates whether the data should be compressed before sending.
+// - secretKey: A secret key used for secure communication (optional).
+//
+// Returns:
+// - An error if there is an issue in creating JSON or sending the request.
 func metricsToServerBatch(
 	s *filememory.MemStorage,
 	url string,
@@ -101,6 +140,17 @@ func metricsToServerBatch(
 	return nil
 }
 
+// metricsToServerAppJSON sends individual metrics in JSON format to the server URL
+// using concurrent goroutines. Each metric is sent as a separate request.
+//
+// Parameters:
+// - s: An instance of in-memory storage containing the metrics to be sent.
+// - url: The server URL to which the metrics are to be sent.
+// - isCompress: Indicates whether the data should be compressed before sending.
+// - secretKey: A secret key used for secure communication (optional).
+//
+// Returns:
+// - An error if encountered during the processing or sending of any metric.
 func metricsToServerAppJSON(
 	s *filememory.MemStorage,
 	url string,
@@ -158,6 +208,18 @@ func metricsToServerAppJSON(
 	return nil
 }
 
+// metricsToServerTextPlain sends individual metrics in plain text format to the server URL
+// using concurrent goroutines. Each metric is sent as a separate request with the metric value
+// included in the URL.
+//
+// Parameters:
+// - s: An instance of in-memory storage containing the metrics to be sent.
+// - url: The server URL to which the metrics are to be sent.
+// - isCompress: Indicates whether the data should be compressed before sending.
+// - secretKey: A secret key used for secure communication (optional).
+//
+// Returns:
+// - An error if encountered during the processing or sending of any metric.
 func metricsToServerTextPlain(
 	s *filememory.MemStorage,
 	url string,
