@@ -2,7 +2,7 @@ package handlers
 
 import (
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
-	"github.com/elina-chertova/metrics-alerting.git/internal/storage/metrics"
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
 	"github.com/gin-gonic/gin"
 	"github.com/goccy/go-json"
 	"html/template"
@@ -19,15 +19,15 @@ type metricsStorage interface {
 	GetMetrics() (map[string]int64, map[string]float64)
 }
 
-type handler struct {
+type Handler struct {
 	memStorage metricsStorage
 }
 
-func NewHandler(st metricsStorage) *handler {
-	return &handler{st}
+func NewHandler(st metricsStorage) *Handler {
+	return &Handler{st}
 }
 
-func (h *handler) MetricsListHandler() gin.HandlerFunc {
+func (h *Handler) MetricsListHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tmpl, err := template.New("data").Parse("<!DOCTYPE html>\n<html>\n\n<head>\n    <title>Metric List</title>\n</head>\n\n<body>\n<ul>\n    {{ range $key, $value := .MetricsC }}\n    <p>{{$key}}: {{$value}}</p>\n    {{ end }}\n    {{ range $key, $value := .MetricsG }}\n    <p>{{$key}}: {{$value}}</p>\n    {{ end }}\n</ul>\n</body>\n\n</html>")
 		if err != nil {
@@ -54,7 +54,7 @@ func (h *handler) MetricsListHandler() gin.HandlerFunc {
 	}
 }
 
-func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
+func (h *Handler) GetMetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m f.Metric
 		if err := c.ShouldBindJSON(&m); err != nil {
@@ -66,12 +66,12 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 		var val2 float64
 
 		switch m.MType {
-		case metrics.Counter:
+		case storage.Counter:
 			val1, _ = h.memStorage.GetCounter(m.ID)
-			metric = f.Metric{ID: m.ID, MType: metrics.Counter, Delta: &val1}
-		case metrics.Gauge:
+			metric = f.Metric{ID: m.ID, MType: storage.Counter, Delta: &val1}
+		case storage.Gauge:
 			val2, _ = h.memStorage.GetGauge(m.ID)
-			metric = f.Metric{ID: m.ID, MType: metrics.Gauge, Value: &val2}
+			metric = f.Metric{ID: m.ID, MType: storage.Gauge, Value: &val2}
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported metric type"})
 			return
@@ -86,14 +86,14 @@ func (h *handler) GetMetricsJSONHandler() gin.HandlerFunc {
 	}
 }
 
-func (h *handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
+func (h *Handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var value any
 		metricType := c.Param("metricType")
 		metricName := c.Param("metricName")
 
 		switch metricType {
-		case metrics.Gauge:
+		case storage.Gauge:
 			_, ok := h.memStorage.GetGauge(metricName)
 			if !ok {
 				c.Status(http.StatusNotFound)
@@ -101,7 +101,7 @@ func (h *handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 			}
 			value, _ = h.memStorage.GetGauge(metricName)
 
-		case metrics.Counter:
+		case storage.Counter:
 			_, ok := h.memStorage.GetCounter(metricName)
 			if !ok {
 				c.Status(http.StatusNotFound)
@@ -121,7 +121,7 @@ func (h *handler) GetMetricsTextPlainHandler() gin.HandlerFunc {
 	}
 }
 
-func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
+func (h *Handler) MetricsJSONHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var m f.Metric
 		var reader io.Reader = c.Request.Body
@@ -139,7 +139,7 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 		var returnedMetric f.Metric
 
 		switch m.MType {
-		case metrics.Counter:
+		case storage.Counter:
 			if m.Delta == nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Delta is nil, skipping update"})
 				return
@@ -149,8 +149,8 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 			h.memStorage.UpdateCounter(m.ID, v1, ok)
 
 			v1, _ = h.memStorage.GetCounter(m.ID)
-			returnedMetric = f.Metric{ID: m.ID, MType: metrics.Counter, Delta: &v1}
-		case metrics.Gauge:
+			returnedMetric = f.Metric{ID: m.ID, MType: storage.Counter, Delta: &v1}
+		case storage.Gauge:
 			if m.Value == nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "Value is nil, skipping update"})
 				return
@@ -159,7 +159,7 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 			h.memStorage.UpdateGauge(m.ID, v2)
 
 			v2, _ = h.memStorage.GetGauge(m.ID)
-			returnedMetric = f.Metric{ID: m.ID, MType: metrics.Gauge, Value: &v2}
+			returnedMetric = f.Metric{ID: m.ID, MType: storage.Gauge, Value: &v2}
 		default:
 			c.JSON(http.StatusBadRequest, gin.H{"error": "unsupported metric type"})
 			return
@@ -174,7 +174,7 @@ func (h *handler) MetricsJSONHandler() gin.HandlerFunc {
 	}
 }
 
-func (h *handler) MetricsTextPlainHandler() gin.HandlerFunc {
+func (h *Handler) MetricsTextPlainHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		if err := c.Request.ParseForm(); err != nil {
@@ -190,14 +190,14 @@ func (h *handler) MetricsTextPlainHandler() gin.HandlerFunc {
 			return
 		}
 		switch metricType {
-		case metrics.Gauge:
+		case storage.Gauge:
 			if convertedMetricValueFloat, err := strconv.ParseFloat(metricValue, 64); err == nil {
 				h.memStorage.UpdateGauge(metricName, convertedMetricValueFloat)
 			} else {
 				c.Status(http.StatusBadRequest)
 				return
 			}
-		case metrics.Counter:
+		case storage.Counter:
 			if convertedMetricValueInt, err := strconv.Atoi(metricValue); err == nil {
 				_, ok := h.memStorage.GetCounter(metricName)
 				h.memStorage.UpdateCounter(metricName, int64(convertedMetricValueInt), ok)

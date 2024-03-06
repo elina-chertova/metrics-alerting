@@ -1,4 +1,4 @@
-package metrics
+package filememory
 
 import (
 	"errors"
@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 )
 
-func (s *MemStorage) Backup(fileName string) {
-	combinedData := GenerateCombinedData(s)
+func (s *MemStorage) backup(fileName string) {
+	combinedData := generateCombinedData(s)
 	data, err := json.MarshalIndent(combinedData, "", "   ")
 	if err != nil {
 		fmt.Printf("error MarshalIndent: %v\n", err)

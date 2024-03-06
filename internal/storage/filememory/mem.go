@@ -1,7 +1,8 @@
-package metrics
+package filememory
 
 import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
 	"math/rand"
 	"runtime"
 	"sync"
@@ -22,12 +23,12 @@ func NewMemStorage(serverConfigEnable bool, configuration *config.Server) *MemSt
 	}
 	if serverConfigEnable {
 		if configuration.FlagRestore {
-			s.Load(configuration.FileStoragePath)
+			s.load(configuration.FileStoragePath)
 		}
 		go func() {
 			for {
 				time.Sleep(time.Duration(configuration.StoreInterval) * time.Second)
-				s.Backup(configuration.FileStoragePath)
+				s.backup(configuration.FileStoragePath)
 			}
 		}()
 	}
@@ -86,38 +87,10 @@ func (s *MemStorage) GetMetrics() (map[string]int64, map[string]float64) {
 	return s.Counter, s.Gauge
 }
 
-func GenerateCombinedData(s *MemStorage) map[string]interface{} {
+func generateCombinedData(s *MemStorage) map[string]interface{} {
 	return map[string]interface{}{
-		Gauge:   s.Gauge,
-		Counter: s.Counter,
-	}
-}
-
-func (s *MemStorage) UpdateBackupMap(combinedData map[string]interface{}) {
-	for key, value := range combinedData {
-		switch key {
-		case Gauge:
-			if gaugeData, ok := value.(map[string]interface{}); ok {
-				gauge := make(map[string]float64)
-				for k, v := range gaugeData {
-					if floatValue, isFloat := v.(float64); isFloat {
-						gauge[k] = floatValue
-					}
-				}
-				s.Gauge = gauge
-			}
-
-		case Counter:
-			if counterData, ok := value.(map[string]interface{}); ok {
-				counter := make(map[string]int64)
-				for k, v := range counterData {
-					if floatValue, isFloat := v.(float64); isFloat {
-						counter[k] = int64(floatValue)
-					}
-				}
-				s.Counter = counter
-			}
-		}
+		storage.Gauge:   s.Gauge,
+		storage.Counter: s.Counter,
 	}
 }
 
