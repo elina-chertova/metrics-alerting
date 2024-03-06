@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/goccy/go-json"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -59,49 +60,9 @@ func ParseServerFlags(s *Server) {
 	)
 	configFilePathAlt := flag.String("config", "", "path to config file (alternative)")
 	flag.Parse()
-
-	finalConfigPath := *configFilePath
-	if *configFilePathAlt != "" {
-		finalConfigPath = *configFilePathAlt
-	}
-
-	if finalConfigPath != "" {
-		file, err := os.ReadFile(finalConfigPath)
-		if err != nil {
-			panic(err)
-		}
-
-		var jsonConfig ServerConfigJSON
-		if err := json.Unmarshal(file, &jsonConfig); err != nil {
-			panic(err)
-		}
-
-		if flag.Lookup("a").Value.String() == "localhost:8080" {
-			s.FlagAddress = jsonConfig.Address
-		}
-
-		if flag.CommandLine.Lookup("i").Value.String() == strconv.Itoa(300) && jsonConfig.StoreInterval != "" {
-			if dur, err := time.ParseDuration(jsonConfig.StoreInterval); err == nil {
-				s.StoreInterval = int(dur.Seconds())
-				fmt.Println("s.StoreInterval", s.StoreInterval)
-			} else {
-				panic(err)
-			}
-		}
-		if flag.Lookup("f").Value.String() == "tmp/metrics-db.json" {
-			s.FileStoragePath = jsonConfig.FileStoragePath
-		}
-		if !flag.Lookup("r").Value.(flag.Getter).Get().(bool) {
-			s.FlagRestore = jsonConfig.Restore
-			fmt.Println("s.FlagRestore", s.FlagRestore)
-		}
-		if flag.Lookup("d").Value.String() == "" {
-			s.DatabaseDSN = jsonConfig.DatabaseDSN
-			fmt.Println("s.DatabaseDSN", s.DatabaseDSN)
-		}
-		if flag.Lookup("crypto-key").Value.String() == "" {
-			s.CryptoKey = jsonConfig.CryptoKey
-		}
+	err := readJSONConfig(s, configFilePath, configFilePathAlt)
+	if err != nil {
+		log.Println("Error reading JSON: ", err)
 	}
 
 	if envRunAddr := os.Getenv("ADDRESS"); envRunAddr != "" {
@@ -126,6 +87,52 @@ func ParseServerFlags(s *Server) {
 		s.CryptoKey = envCryptoKey
 	}
 
+}
+
+func readJSONConfig(s *Server, configFilePath *string, configFilePathAlt *string) error {
+	finalConfigPath := *configFilePath
+	if *configFilePathAlt != "" {
+		finalConfigPath = *configFilePathAlt
+	}
+
+	if finalConfigPath != "" {
+		file, err := os.ReadFile(finalConfigPath)
+		if err != nil {
+			return err
+		}
+
+		var jsonConfig ServerConfigJSON
+		if err := json.Unmarshal(file, &jsonConfig); err != nil {
+			return err
+		}
+
+		if flag.Lookup("a").Value.String() == "localhost:8080" {
+			s.FlagAddress = jsonConfig.Address
+		}
+
+		if flag.CommandLine.Lookup("i").Value.String() == strconv.Itoa(300) && jsonConfig.StoreInterval != "" {
+			if dur, err := time.ParseDuration(jsonConfig.StoreInterval); err == nil {
+				s.StoreInterval = int(dur.Seconds())
+			} else {
+				return err
+			}
+		}
+		if flag.Lookup("f").Value.String() == "tmp/metrics-db.json" {
+			s.FileStoragePath = jsonConfig.FileStoragePath
+		}
+		if !flag.Lookup("r").Value.(flag.Getter).Get().(bool) {
+			s.FlagRestore = jsonConfig.Restore
+			fmt.Println("s.FlagRestore", s.FlagRestore)
+		}
+		if flag.Lookup("d").Value.String() == "" {
+			s.DatabaseDSN = jsonConfig.DatabaseDSN
+			fmt.Println("s.DatabaseDSN", s.DatabaseDSN)
+		}
+		if flag.Lookup("crypto-key").Value.String() == "" {
+			s.CryptoKey = jsonConfig.CryptoKey
+		}
+	}
+	return nil
 }
 
 func NewServer() *Server {

@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-	"net/http/pprof"
-
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/handlers"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
@@ -13,6 +10,14 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/db"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/net/context"
+	"log"
+	"net/http"
+	"net/http/pprof"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 var (
@@ -64,9 +69,34 @@ func run() error {
 			c.String(http.StatusNotFound, "Page not found")
 		},
 	)
+	srv := &http.Server{
+		Addr:    serverConfig.FlagAddress,
+		Handler: router,
+	}
 
-	if err := router.Run(serverConfig.FlagAddress); err != nil {
-		return err
+	//if err := router.Run(serverConfig.FlagAddress); err != nil {
+	//	return err
+	//}
+
+	go func() {
+		quit := make(chan os.Signal, 1)
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+		<-quit
+
+		fmt.Println("Shutting down server...")
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(ctx); err != nil {
+			log.Fatal("Server forced to shutdown:", err)
+		}
+
+		fmt.Println("Server exiting")
+	}()
+
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("listen: %s\n", err)
 	}
 
 	return nil

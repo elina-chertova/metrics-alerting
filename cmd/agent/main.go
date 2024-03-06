@@ -2,144 +2,94 @@ package main
 
 import (
 	"fmt"
+	"github.com/elina-chertova/metrics-alerting.git/internal/asymencrypt"
+	"log"
+	"os"
+	"os/signal"
 	"sync"
-	"time"
+	"syscall"
 
 	_ "net/http/pprof"
 
-	"go.uber.org/zap"
-
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	st "github.com/elina-chertova/metrics-alerting.git/internal/metricextractor"
+	sender "github.com/elina-chertova/metrics-alerting.git/internal/metricsender"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
-	r "github.com/elina-chertova/metrics-alerting.git/internal/request"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 )
 
 var (
+	wg           sync.WaitGroup
+	stopCh       = make(chan struct{})
 	buildVersion = "N/A"
 	buildDate    = "N/A"
 	buildCommit  = "N/A"
 )
-
-func sendMetricsWorker(storage *filememory.MemStorage, worker *Worker, stopChan <-chan struct{}) {
-	worker.once.Do(
-		func() {
-			if worker.settings.IsSendBatch {
-				worker.settings.URL = fmt.Sprintf(
-					worker.settings.URL,
-					worker.config.FlagAddress,
-					"updates",
-				)
-			} else {
-				worker.settings.URL = fmt.Sprintf(
-					worker.settings.URL,
-					worker.config.FlagAddress,
-					"update",
-				)
-			}
-		},
-	)
-
-	go func() {
-		for {
-			select {
-			case <-stopChan:
-			default:
-			}
-
-			time.Sleep(time.Duration(worker.config.ReportInterval) * time.Second)
-
-			err := r.MetricsToServer(
-				storage,
-				worker.settings.FlagContentType,
-				worker.settings.URL,
-				worker.settings.IsCompress,
-				worker.settings.IsSendBatch,
-				worker.config.SecretKey,
-				worker.config.CryptoKey,
-			)
-			if err != nil {
-				logger.Log.Error(err.Error(), zap.String("method", "MetricsToServer"))
-			}
-			logger.Log.Info(
-				"Metrics sent", zap.String("method", "MetricsToServer"),
-				zap.String("URL", worker.settings.URL),
-				zap.String("ContentType", worker.settings.FlagContentType),
-				zap.Bool("Compressed", worker.settings.IsCompress),
-				zap.Bool("Batch", worker.settings.IsSendBatch),
-			)
-		}
-	}()
-}
-
-func extractMetricsWorker(
-	storage *filememory.MemStorage,
-	worker *Worker,
-	stopChan <-chan struct{},
-) {
-	for {
-		select {
-		case <-stopChan:
-		default:
-		}
-		err := st.ExtractMetrics(storage)
-		if err != nil {
-			logger.Log.Error(err.Error(), zap.String("method", "ExtractMetrics"))
-		}
-		time.Sleep(time.Duration(worker.config.PollInterval) * time.Second)
-	}
-
-}
-
-func extractOSMetricsWorker(
-	storage *filememory.MemStorage,
-	worker *Worker,
-	stopChan <-chan struct{},
-) {
-	for {
-		select {
-		case <-stopChan:
-		default:
-		}
-		err := st.ExtractOSMetrics(storage)
-		if err != nil {
-			logger.Log.Error(err.Error(), zap.String("method", "ExtractOSMetrics"))
-		}
-		time.Sleep(time.Duration(worker.config.PollInterval) * time.Second)
-	}
-
-}
-
-type Worker struct {
-	settings *config.Settings
-	config   *config.Agent
-	once     sync.Once
-}
 
 func main() {
 	fmt.Printf("Build version:%s\n", buildVersion)
 	fmt.Printf("Build date:%s\n", buildDate)
 	fmt.Printf("Build commit:%s\n", buildCommit)
 
-	w := &Worker{
-		settings: config.NewSettings(),
-		config:   config.NewAgent(),
+	w := &sender.Worker{
+		Settings: config.NewSettings(),
+		Config:   config.NewAgent(),
 	}
+
+	cryptoKeyPing(w.Config.CryptoKey)
+
 	logger.LogInit("info")
 	storage := filememory.NewMemStorage(false, nil)
-	stopCh := make(chan struct{})
-	var numSendWorkers = w.config.RateLimit
-	var numExtractWorkers = w.config.RateLimit
+
+	startWorkers(storage, w, stopCh, &wg)
+
+	waitForSignals(stopCh)
+
+	wg.Wait()
+}
+
+func startWorkers(
+	storage *filememory.MemStorage,
+	w *sender.Worker,
+	stopCh <-chan struct{},
+	wg *sync.WaitGroup,
+) {
+	numSendWorkers := w.Config.RateLimit
+	numExtractWorkers := w.Config.RateLimit
+
+	wg.Add(numSendWorkers + 2*numExtractWorkers)
 
 	for sw := 0; sw < numSendWorkers; sw++ {
-		go sendMetricsWorker(storage, w, stopCh)
+		go sender.SendMetricsWorker(storage, w, stopCh, wg)
 	}
 	for ew := 0; ew < numExtractWorkers; ew++ {
-		go extractMetricsWorker(storage, w, stopCh)
-		go extractOSMetricsWorker(storage, w, stopCh)
+		go st.ExtractMetricsWorker(storage, w, stopCh, wg)
+		go st.ExtractOSMetricsWorker(storage, w, stopCh, wg)
 	}
+}
 
+func initiateGracefulShutdown() {
 	close(stopCh)
-	select {}
+	wg.Wait()
+}
+
+func cryptoKeyPing(cryptoKeyPath string) {
+	originalText := "test ping"
+	_, err := asymencrypt.EncryptDataWithPublicKey(
+		[]byte(originalText),
+		cryptoKeyPath,
+	)
+	if err != nil {
+		log.Printf("Failed to encrypt data: %v\n", err)
+		initiateGracefulShutdown()
+		return
+	}
+}
+
+func waitForSignals(stopCh chan<- struct{}) {
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	<-sigint
+	close(stopCh)
 }
