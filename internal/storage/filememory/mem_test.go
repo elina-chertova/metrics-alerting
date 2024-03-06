@@ -51,6 +51,20 @@ func TestUpdateGauge(t *testing.T) {
 	}
 }
 
+func TestGetMetrics(t *testing.T) {
+	s := NewMemStorage(false, nil)
+	s.Gauge["hello"] = 4.3
+	s.Counter["count"] = 6
+	c, g := s.GetMetrics()
+
+	value1, exists1 := c["count"]
+	value2, exists2 := g["hello"]
+
+	if value1 != 6 || !exists1 || value2 != 4.3 || !exists2 {
+		t.Errorf("GetMetrics didn't work as expected")
+	}
+}
+
 func TestGenerateCombinedData(t *testing.T) {
 	storage := &MemStorage{
 		Gauge: map[string]float64{
