@@ -3,7 +3,12 @@
 В данной директории и её поддиректориях будет содержаться имплементация вашего сервиса
 
 test
-
+./metricstest-darwin-arm64 -test.v -test.run=^TestIteration12$ \
+-agent-binary-path=cmd/agent/agent \
+-binary-path=cmd/server/server \
+-database-dsn='postgres://postgres:123qwe@localhost:5432/metrics_db?sslmode=disable' \
+-server-port=8080 \
+-source-path=.
 ```azure
 ./metricstest-darwin-arm64 -test.v -test.run=^TestIteration1$  -binary-path=cmd/server/server
 

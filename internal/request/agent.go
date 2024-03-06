@@ -1,14 +1,11 @@
 package request
 
 import (
-	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
+	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
-	"github.com/elina-chertova/metrics-alerting.git/internal/storage"
 	metrics2 "github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
-	"github.com/levigross/grequests"
 	"sync"
 )
 
@@ -16,8 +13,13 @@ func MetricsToServer(
 	s *metrics2.MemStorage,
 	contentType string,
 	url string,
-	isCompress bool,
+	isCompress,
+	isSendBatch bool,
 ) error {
+	if isSendBatch {
+		return metricsToServerBatch(s, url, isCompress)
+	}
+
 	switch contentType {
 	case f.ContentTypeTextPlain:
 		return metricsToServerTextPlain(s, url, isCompress)
@@ -28,58 +30,33 @@ func MetricsToServer(
 	}
 }
 
-func compressData(data []byte) bytes.Buffer {
-	var compressedBuffer bytes.Buffer
-	gzipWriter := gzip.NewWriter(&compressedBuffer)
+func metricsToServerBatch(s *metrics2.MemStorage, url string, isCompress bool) error {
+	var metric f.Metric
+	var metrics []f.Metric
 
-	_, err := gzipWriter.Write(data)
+	s.LockGauge()
+	defer s.UnlockGauge()
+	for metricName, metricValue := range s.Gauge {
+		metric = formJSON(metricName, metricValue, config.Gauge)
+		metrics = append(metrics, metric)
+	}
+
+	s.LockCounter()
+	defer s.UnlockCounter()
+	for metricName, metricValue := range s.Counter {
+		metric = formJSON(metricName, metricValue, config.Counter)
+		metrics = append(metrics, metric)
+	}
+	out, err := json.Marshal(metrics)
 	if err != nil {
-		_ = fmt.Errorf("error compressing data: %v", err)
-	}
-	gzipWriter.Close()
-	return compressedBuffer
-}
-
-func formJSON(metricName string, value any, typeMetric string) f.Metric {
-
-	var metrics f.Metric
-
-	switch typeMetric {
-	case storage.Gauge:
-		var v float64
-		switch value := value.(type) {
-		case int64:
-			v = float64(value)
-		case float64:
-			v = value
-		default:
-			_ = fmt.Errorf("unsupported value type: %T", value)
-		}
-		metrics = f.Metric{
-			ID:    metricName,
-			MType: storage.Gauge,
-			Value: &v,
-		}
-	case storage.Counter:
-		var delta int64
-		switch value := value.(type) {
-		case int64:
-			delta = value
-		case float64:
-			delta = int64(value)
-		default:
-			_ = fmt.Errorf("unsupported value type: %T", value)
-		}
-		metrics = f.Metric{
-			ID:    metricName,
-			MType: storage.Counter,
-			Delta: &delta,
-		}
-	default:
-		_ = fmt.Errorf("unsupported metric type: %s", typeMetric)
+		return fmt.Errorf("error creating JSON: %v", err)
 	}
 
-	return metrics
+	if err := sendRequest(f.ContentTypeJSON, isCompress, url, out); err != nil {
+		return fmt.Errorf("error sending request: %v", err)
+	}
+
+	return nil
 }
 
 func metricsToServerAppJSON(s *metrics2.MemStorage, url string, isCompress bool) error {
@@ -89,7 +66,7 @@ func metricsToServerAppJSON(s *metrics2.MemStorage, url string, isCompress bool)
 		wg.Add(1)
 		go func(metricName string, metricValue float64) {
 			defer wg.Done()
-			metrics := formJSON(metricName, metricValue, storage.Gauge)
+			metrics := formJSON(metricName, metricValue, config.Gauge)
 			out, err := json.Marshal(metrics)
 			if err != nil {
 				fmt.Printf("error creating JSON: %v\n", err)
@@ -104,7 +81,7 @@ func metricsToServerAppJSON(s *metrics2.MemStorage, url string, isCompress bool)
 		wg.Add(1)
 		go func(metricName string, metricValue int64) {
 			defer wg.Done()
-			metrics := formJSON(metricName, metricValue, storage.Counter)
+			metrics := formJSON(metricName, metricValue, config.Counter)
 			out, err := json.Marshal(metrics)
 
 			if err != nil {
@@ -146,37 +123,5 @@ func metricsToServerTextPlain(s *metrics2.MemStorage, url string, isCompress boo
 	}
 
 	wg.Wait()
-	return nil
-}
-
-func sendRequest(contentType string, isCompress bool, url string, jsonBody []byte) error {
-	var ro *grequests.RequestOptions
-	if isCompress {
-		compressedData := compressData(jsonBody)
-		ro = &grequests.RequestOptions{
-			Headers: map[string]string{
-				"Content-Type":     contentType,
-				"Content-Encoding": "gzip",
-			},
-			RequestBody: &compressedData,
-		}
-	} else {
-		ro = &grequests.RequestOptions{
-			Headers: map[string]string{"Content-Type": contentType},
-			JSON:    jsonBody,
-		}
-	}
-
-	resp, err := grequests.Post(url, ro)
-
-	if err != nil {
-		return fmt.Errorf("error creating HTTP request: %v", err)
-	}
-	defer resp.Close()
-
-	if !resp.Ok {
-		return fmt.Errorf("HTTP request failed with status code %d", resp.StatusCode)
-	}
-
 	return nil
 }

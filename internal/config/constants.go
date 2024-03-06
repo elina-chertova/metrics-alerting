@@ -1,4 +1,4 @@
-package storage
+package config
 
 const (
 	Gauge   = "gauge"

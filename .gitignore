@@ -20,3 +20,4 @@
 /tmp/metrics-db.json
 /cmd/server/server
 /cmd/agent/agent
+/tmp/

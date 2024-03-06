@@ -20,8 +20,8 @@ func ParseServerFlags(s *Server) {
 	flag.StringVar(
 		&s.FileStoragePath,
 		"f",
-		"tmp/filememory-db.json",
-		"temp file to save filememory",
+		"tmp/metrics-db.json",
+		"temp file to save metrics",
 	)
 	flag.BoolVar(&s.FlagRestore, "r", true, "is load saved filememory during server start")
 	flag.StringVar(

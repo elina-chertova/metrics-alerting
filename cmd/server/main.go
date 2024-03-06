@@ -36,6 +36,7 @@ func run() error {
 		h = handlers.NewHandler(s)
 	}
 
+	router.POST("/updates/", h.UpdateBatchMetrics())
 	router.POST("/update/", h.MetricsJSONHandler())
 	router.POST("/update/:metricType/:metricName/:metricValue", h.MetricsTextPlainHandler())
 	router.GET("/value/:metricType/:metricName", h.GetMetricsTextPlainHandler())
