@@ -1,20 +1,21 @@
 package logger
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
 )
 
-var Log *zap.Logger
+var Log *zap.Logger = zap.NewNop()
 
 func LogInit(level string) {
 	lvl, err := zap.ParseAtomicLevel(level)
 	if err != nil {
-		_ = fmt.Errorf("error parsing logger level %v", err)
+		log.Printf("Error parsing logger level: %v", err)
+		return
 	}
 	logger := zap.Must(zap.NewProduction())
 	defer logger.Sync()
@@ -22,6 +23,14 @@ func LogInit(level string) {
 	configuration.Level = lvl
 	zl := zap.Must(configuration.Build())
 	Log = zl
+}
+
+func Info(message string, fields ...zap.Field) {
+	Log.Info(message, fields...)
+}
+
+func Error(message string, fields ...zap.Field) {
+	Log.Error(message, fields...)
 }
 
 func RequestLogger() gin.HandlerFunc {
@@ -35,7 +44,7 @@ func RequestLogger() gin.HandlerFunc {
 			size = c.Writer.Size()
 		}
 		latency := time.Since(t)
-		Log.Info(
+		Info(
 			"got HTTP request info",
 			zap.String("method", c.Request.Method),
 			zap.String("path", c.Request.RequestURI),

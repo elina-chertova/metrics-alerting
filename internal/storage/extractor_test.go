@@ -1,12 +1,12 @@
 package storage
 
 import (
-	f "github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
+	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"testing"
 )
 
 func TestExtractMetrics(t *testing.T) {
-	st := &f.MemStorage{
+	st := &filememory.MemStorage{
 		Gauge:   make(map[string]float64),
 		Counter: make(map[string]int64),
 	}

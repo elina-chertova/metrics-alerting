@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0 // indirect
+	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -18,6 +19,7 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgx v3.6.2+incompatible // indirect
@@ -36,6 +38,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/sethvargo/go-retry v0.2.4 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/stretchr/testify v1.8.4 // indirect
