@@ -6,6 +6,8 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"github.com/stretchr/testify/require"
+	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -29,8 +31,9 @@ func TestSendRequest(t *testing.T) {
 
 	publicKeyPath := "publicKey.pem"
 	privateKeyPath := "privateKey.pem"
+	ip := getIP()
 
-	err = sendRequest("application/json", false, server.URL, nil, "", publicKeyPath)
+	err = sendRequest("application/json", false, server.URL, nil, "", publicKeyPath, ip)
 	assert.NoError(t, err)
 	os.Remove(publicKeyPath)
 	os.Remove(privateKeyPath)
@@ -75,4 +78,14 @@ func generateTestKeys() error {
 	}
 
 	return nil
+}
+
+func getIP() net.IP {
+	dial, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatalf("Failed to get udp connection: %v", err)
+	}
+	defer dial.Close()
+	localAddr := dial.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP
 }
