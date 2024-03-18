@@ -13,6 +13,7 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/security"
 	"github.com/levigross/grequests"
 	"log"
+	"net"
 )
 
 var (
@@ -56,10 +57,12 @@ func sendRequest(
 	jsonBody []byte,
 	secretKey string,
 	publicKey string,
+	ip net.IP,
 ) error {
 	var ro *grequests.RequestOptions
 	headers := make(map[string]string)
 	headers["Content-Type"] = contentType
+	headers["X-Real-IP"] = ip.String()
 
 	encryptedJSONBody, err := asymencrypt.EncryptDataWithPublicKey(jsonBody, publicKey)
 	if err != nil {

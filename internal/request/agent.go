@@ -4,6 +4,7 @@ package request
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -35,16 +36,17 @@ func MetricsToServer(
 	isSendBatch bool,
 	secretKey string,
 	cryptoKey string,
+	ip net.IP,
 ) error {
 	if isSendBatch {
-		return metricsToServerBatch(s, url, isCompress, secretKey, cryptoKey)
+		return metricsToServerBatch(s, url, isCompress, secretKey, cryptoKey, ip)
 	}
 
 	switch contentType {
 	case formatter.ContentTypeTextPlain:
-		return metricsToServerTextPlain(s, url, isCompress, secretKey, cryptoKey)
+		return metricsToServerTextPlain(s, url, isCompress, secretKey, cryptoKey, ip)
 	case formatter.ContentTypeJSON:
-		return metricsToServerAppJSON(s, url, isCompress, secretKey, cryptoKey)
+		return metricsToServerAppJSON(s, url, isCompress, secretKey, cryptoKey, ip)
 	default:
 		return fmt.Errorf("error creating HTTP request, wrong Content-Type: %s", contentType)
 	}
@@ -68,6 +70,7 @@ func BackoffSendRequest(
 	out []byte,
 	secretKey string,
 	cryptoKey string,
+	ip net.IP,
 ) error {
 	retryDelays := []time.Duration{1 * time.Second, 3 * time.Second, 5 * time.Second}
 	maxRetries := 3
@@ -79,7 +82,7 @@ func BackoffSendRequest(
 			}
 		}
 
-		err := sendRequest(contentType, isCompress, url, out, secretKey, cryptoKey)
+		err := sendRequest(contentType, isCompress, url, out, secretKey, cryptoKey, ip)
 
 		if err != nil {
 			if retry == maxRetries {
@@ -117,6 +120,7 @@ func metricsToServerBatch(
 	isCompress bool,
 	secretKey string,
 	cryptoKey string,
+	ip net.IP,
 ) error {
 	var metric formatter.Metric
 	var metrics []formatter.Metric
@@ -135,7 +139,15 @@ func metricsToServerBatch(
 		return fmt.Errorf("error creating JSON: %v", err)
 	}
 
-	err = BackoffSendRequest(formatter.ContentTypeJSON, url, isCompress, out, secretKey, cryptoKey)
+	err = BackoffSendRequest(
+		formatter.ContentTypeJSON,
+		url,
+		isCompress,
+		out,
+		secretKey,
+		cryptoKey,
+		ip,
+	)
 	if err != nil {
 		return fmt.Errorf("error sending request: %v", err)
 	}
@@ -160,6 +172,7 @@ func metricsToServerAppJSON(
 	isCompress bool,
 	secretKey string,
 	cryptoKey string,
+	ip net.IP,
 ) error {
 	var wg sync.WaitGroup
 
@@ -180,6 +193,7 @@ func metricsToServerAppJSON(
 				out,
 				secretKey,
 				cryptoKey,
+				ip,
 			); err != nil {
 				logger.Log.Error(fmt.Sprintf("Error sending request for %s: %v", metricName, err))
 			}
@@ -203,6 +217,7 @@ func metricsToServerAppJSON(
 				out,
 				secretKey,
 				cryptoKey,
+				ip,
 			); err != nil {
 				logger.Log.Error(fmt.Sprintf("Error sending request for %s: %v", metricName, err))
 			}
@@ -232,6 +247,7 @@ func metricsToServerTextPlain(
 	isCompress bool,
 	secretKey string,
 	cryptoKey string,
+	ip net.IP,
 ) error {
 	var wg sync.WaitGroup
 
@@ -247,6 +263,7 @@ func metricsToServerTextPlain(
 				nil,
 				secretKey,
 				cryptoKey,
+				ip,
 			); err != nil {
 				logger.Log.Error(fmt.Sprintf("Error sending request for %s: %v", metricName, err))
 			}
@@ -265,6 +282,7 @@ func metricsToServerTextPlain(
 				nil,
 				secretKey,
 				cryptoKey,
+				ip,
 			); err != nil {
 				logger.Log.Error(fmt.Sprintf("Error sending request for %s: %v", metricName, err))
 			}

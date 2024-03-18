@@ -7,6 +7,8 @@ import (
 	r "github.com/elina-chertova/metrics-alerting.git/internal/request"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"go.uber.org/zap"
+	"log"
+	"net"
 	"sync"
 	"time"
 )
@@ -51,6 +53,7 @@ func SendMetricsWorker(
 			}
 
 			time.Sleep(time.Duration(worker.Config.ReportInterval) * time.Second)
+			ip := getIP()
 
 			err := r.MetricsToServer(
 				storage,
@@ -60,6 +63,7 @@ func SendMetricsWorker(
 				worker.Settings.IsSendBatch,
 				worker.Config.SecretKey,
 				worker.Config.CryptoKey,
+				ip,
 			)
 			if err != nil {
 				logger.Log.Error(err.Error(), zap.String("method", "MetricsToServer"))
@@ -73,4 +77,14 @@ func SendMetricsWorker(
 			)
 		}
 	}()
+}
+
+func getIP() net.IP {
+	dial, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatalf("Failed to get udp connection: %v", err)
+	}
+	defer dial.Close()
+	localAddr := dial.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP
 }

@@ -2,7 +2,6 @@ package config
 
 import (
 	"flag"
-	"fmt"
 	"github.com/goccy/go-json"
 	"log"
 	"os"
@@ -18,6 +17,7 @@ type Server struct {
 	DatabaseDSN     string `json:"database_dsn"`
 	SecretKey       string
 	CryptoKey       string `json:"crypto_key"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 }
 
 type ServerConfigJSON struct {
@@ -27,6 +27,7 @@ type ServerConfigJSON struct {
 	Restore         bool   `json:"restore"`
 	DatabaseDSN     string `json:"database_dsn"`
 	CryptoKey       string `json:"crypto_key"`
+	TrustedSubnet   string `json:"trusted_subnet"`
 }
 
 func ParseServerFlags(s *Server) {
@@ -52,13 +53,18 @@ func ParseServerFlags(s *Server) {
 		"",
 		"crypto key private",
 	)
+	flag.StringVar(&s.TrustedSubnet, "t", "", "CIDR")
 
 	configFilePath := flag.String(
 		"c",
 		"",
 		"path to config file",
 	)
-	configFilePathAlt := flag.String("config", "", "path to config file (alternative)")
+	configFilePathAlt := flag.String(
+		"config",
+		"",
+		"path to config file (alternative)",
+	)
 	flag.Parse()
 	err := readJSONConfig(s, configFilePath, configFilePathAlt)
 	if err != nil {
@@ -86,6 +92,9 @@ func ParseServerFlags(s *Server) {
 	if envCryptoKey := os.Getenv("CRYPTO_KEY"); envCryptoKey != "" {
 		s.CryptoKey = envCryptoKey
 	}
+	if envTrustedSubnet := os.Getenv("TRUSTED_SUBNET"); envTrustedSubnet != "" {
+		s.TrustedSubnet = envTrustedSubnet
+	}
 
 }
 
@@ -109,6 +118,12 @@ func readJSONConfig(s *Server, configFilePath *string, configFilePathAlt *string
 		if flag.Lookup("a").Value.String() == "localhost:8080" {
 			s.FlagAddress = jsonConfig.Address
 		}
+		if flag.Lookup("t").Value.String() == "" {
+			s.TrustedSubnet = jsonConfig.TrustedSubnet
+		}
+		if envTrustedSubnet := os.Getenv("TRUSTED_SUBNET"); envTrustedSubnet != "" {
+			s.TrustedSubnet = envTrustedSubnet
+		}
 
 		if flag.CommandLine.Lookup("i").Value.String() == strconv.Itoa(300) && jsonConfig.StoreInterval != "" {
 			if dur, err := time.ParseDuration(jsonConfig.StoreInterval); err == nil {
@@ -122,11 +137,9 @@ func readJSONConfig(s *Server, configFilePath *string, configFilePathAlt *string
 		}
 		if !flag.Lookup("r").Value.(flag.Getter).Get().(bool) {
 			s.FlagRestore = jsonConfig.Restore
-			fmt.Println("s.FlagRestore", s.FlagRestore)
 		}
 		if flag.Lookup("d").Value.String() == "" {
 			s.DatabaseDSN = jsonConfig.DatabaseDSN
-			fmt.Println("s.DatabaseDSN", s.DatabaseDSN)
 		}
 		if flag.Lookup("crypto-key").Value.String() == "" {
 			s.CryptoKey = jsonConfig.CryptoKey

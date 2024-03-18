@@ -7,6 +7,7 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/security"
+	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/subnet"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/db"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"github.com/gin-gonic/gin"
@@ -43,6 +44,7 @@ func run() error {
 
 	router.Use(logger.RequestLogger())
 	router.Use(compression.GzipHandle())
+	router.Use(subnet.TrustedIPMiddleware(serverConfig.TrustedSubnet))
 
 	h := buildStorage(serverConfig, router)
 
