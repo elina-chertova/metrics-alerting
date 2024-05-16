@@ -59,7 +59,7 @@ func main() {
 		fmt.Println("Server exiting")
 	}()
 
-	log.Printf("gRPC server listening on %d", serverConfig.GRPCPort)
+	log.Printf("gRPC server listening on %s", serverConfig.GRPCPort)
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
