@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
-	"github.com/elina-chertova/metrics-alerting.git/internal/handlers"
+	"github.com/elina-chertova/metrics-alerting.git/internal/handlers/rest"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/security"
@@ -104,16 +104,16 @@ func run() error {
 	return nil
 }
 
-func buildStorage(config *config.Server, router *gin.Engine) *handlers.Handler {
+func buildStorage(config *config.Server, router *gin.Engine) *rest.Handler {
 	if config.DatabaseDSN != "" {
 		connection := db.Connect(config.DatabaseDSN)
-		database := handlers.NewHandlerDB(connection)
+		database := rest.NewHandlerDB(connection)
 		router.GET("/ping", database.PingDB())
-		return handlers.NewHandler(connection)
+		return rest.NewHandler(connection)
 
 	} else {
 		s := filememory.NewMemStorage(true, config)
-		return handlers.NewHandler(s)
+		return rest.NewHandler(s)
 	}
 }
 

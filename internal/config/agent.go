@@ -16,6 +16,8 @@ type Agent struct {
 	SecretKey      string
 	RateLimit      int
 	CryptoKey      string `json:"crypto_key"`
+	UseGRPC        bool   `json:"use_grpc"`
+	GRPCAddress    string `json:"grpc_address"`
 }
 
 type AgentConfigJSON struct {
@@ -29,14 +31,17 @@ func ParseAgentFlags(a *Agent) {
 	flag.StringVar(&a.FlagAddress, "a", "localhost:8080", "address and port to run server")
 	flag.IntVar(&a.PollInterval, "p", 2, "time in seconds to update filememory, example: 2")
 	flag.IntVar(&a.ReportInterval, "r", 10, "time in seconds to send data to server, example: 10")
-	flag.StringVar(&a.SecretKey, "k", "", "secret key for hash")
+	flag.StringVar(&a.SecretKey, "k", "kek", "secret key for hash")
 	flag.IntVar(&a.RateLimit, "l", 2, "Rate limit to max workers number")
+	flag.StringVar(&a.GRPCAddress, "g", "localhost:50051", "grpc address")
+
 	flag.StringVar(
 		&a.CryptoKey,
 		"crypto-key",
-		"",
+		"/Users/elinachertova/Downloads/publicKey.pem", // delete
 		"crypto key public",
 	)
+	flag.BoolVar(&a.UseGRPC, "u", true, "is use GRPC")
 
 	configFilePath := flag.String(
 		"c",
@@ -61,6 +66,12 @@ func ParseAgentFlags(a *Agent) {
 	}
 	if envRunKey := os.Getenv("KEY"); envRunKey != "" {
 		a.SecretKey = envRunKey
+	}
+	if envUseGRPC := os.Getenv("USE_GRPC"); envUseGRPC != "" {
+		a.UseGRPC, _ = strconv.ParseBool(envUseGRPC)
+	}
+	if envGRPCAddress := os.Getenv("GRPC_ADDRESS"); envGRPCAddress != "" {
+		a.GRPCAddress = envGRPCAddress
 	}
 	if envRateLimit := os.Getenv("RATE_LIMIT"); envRateLimit != "" {
 		a.RateLimit, _ = strconv.Atoi(envRateLimit)

@@ -18,6 +18,7 @@ type Server struct {
 	SecretKey       string
 	CryptoKey       string `json:"crypto_key"`
 	TrustedSubnet   string `json:"trusted_subnet"`
+	GRPCPort        string `json:"grpc_port"`
 }
 
 type ServerConfigJSON struct {
@@ -28,6 +29,7 @@ type ServerConfigJSON struct {
 	DatabaseDSN     string `json:"database_dsn"`
 	CryptoKey       string `json:"crypto_key"`
 	TrustedSubnet   string `json:"trusted_subnet"`
+	GRPCPort        string `json:"grpc_port"`
 }
 
 func ParseServerFlags(s *Server) {
@@ -43,17 +45,18 @@ func ParseServerFlags(s *Server) {
 	flag.StringVar(
 		&s.DatabaseDSN,
 		"d",
-		"",
+		"postgres://postgres:123qwe@localhost:5432/metrics_db", // delete
 		"Database DSN. Ex: postgres://postgres:123qwe@localhost:5432/metrics_db",
 	)
-	flag.StringVar(&s.SecretKey, "k", "", "secret key for hash")
+	flag.StringVar(&s.SecretKey, "k", "kek", "secret key for hash")
 	flag.StringVar(
 		&s.CryptoKey,
 		"crypto-key",
-		"",
+		"/Users/elinachertova/Downloads/privateKey.pem", // delete
 		"crypto key private",
 	)
 	flag.StringVar(&s.TrustedSubnet, "t", "", "CIDR")
+	flag.StringVar(&s.GRPCPort, "g", "50051", "GRPC port")
 
 	configFilePath := flag.String(
 		"c",
@@ -94,6 +97,9 @@ func ParseServerFlags(s *Server) {
 	}
 	if envTrustedSubnet := os.Getenv("TRUSTED_SUBNET"); envTrustedSubnet != "" {
 		s.TrustedSubnet = envTrustedSubnet
+	}
+	if envGRPCPort := os.Getenv("GRPC_PORT"); envGRPCPort != "" {
+		s.GRPCPort = envGRPCPort
 	}
 
 }

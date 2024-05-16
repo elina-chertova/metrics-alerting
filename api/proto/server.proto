@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package metrics;
+option go_package = "github.com/elina-chertova/metrics-alerting.git/api/proto";
+
+
+
+service MetricsService {
+  rpc UpdateBatchMetrics(UpdateBatchMetricsRequest) returns (UpdateBatchMetricsResponse);
+}
+
+message Metric {
+  string id = 1;
+  string type = 2;
+  int64 delta = 3;
+  double value = 4;
+}
+
+
+message UpdateBatchMetricsRequest {
+  repeated Metric metrics = 1;
+}
+
+message UpdateBatchMetricsResponse {
+  string status = 1;
+}
+
+
+message EncryptedRequest {
+  bytes data = 1;
+  bytes encrypted_key = 2;
+}

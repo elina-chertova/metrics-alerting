@@ -1,6 +1,6 @@
 // Package handlers provides HTTP handlers for various endpoints
 // in a metrics alerting application.
-package handlers
+package rest
 
 import (
 	"errors"
@@ -12,6 +12,7 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/asymencrypt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	f "github.com/elina-chertova/metrics-alerting.git/internal/formatter"
+	serviceInterface "github.com/elina-chertova/metrics-alerting.git/internal/handlers"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/security"
 	"github.com/gin-gonic/gin"
@@ -28,15 +29,15 @@ var (
 	ErrReadReqBody        = errors.New("error reading request body")
 )
 
-// metricsStorage defines an interface for storing and retrieving metric data.
-type metricsStorage interface {
-	UpdateCounter(name string, value int64, ok bool) error
-	UpdateGauge(name string, value float64) error
-	GetCounter(name string) (int64, bool, error)
-	GetGauge(name string) (float64, bool, error)
-	GetMetrics() (map[string]int64, map[string]float64)
-	InsertBatchMetrics([]f.Metric) error
-}
+//// metricsStorage defines an interface for storing and retrieving metric data.
+//type metricsStorage interface {
+//	UpdateCounter(name string, value int64, ok bool) error
+//	UpdateGauge(name string, value float64) error
+//	GetCounter(name string) (int64, bool, error)
+//	GetGauge(name string) (float64, bool, error)
+//	GetMetrics() (map[string]int64, map[string]float64)
+//	InsertBatchMetrics([]f.Metric) error
+//}
 
 // database defines an interface for interacting with a database.
 type database interface {
@@ -45,7 +46,7 @@ type database interface {
 
 // Handler encapsulates handling logic for metric-related HTTP endpoints.
 type Handler struct {
-	memStorage metricsStorage
+	memStorage serviceInterface.MetricsStorage
 }
 
 type HandlerDB struct {
@@ -53,7 +54,7 @@ type HandlerDB struct {
 }
 
 // NewHandler creates a new Handler with the given metrics storage.
-func NewHandler(st metricsStorage) *Handler {
+func NewHandler(st serviceInterface.MetricsStorage) *Handler {
 	return &Handler{st}
 }
 
