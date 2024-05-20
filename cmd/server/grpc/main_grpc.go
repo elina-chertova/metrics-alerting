@@ -52,11 +52,11 @@ func main() {
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 		<-quit
 
-		fmt.Println("Shutting down server...")
+		log.Println("Shutting down server...")
 
 		grpcServer.GracefulStop()
 
-		fmt.Println("Server exiting")
+		log.Println("Server exiting")
 	}()
 
 	log.Printf("gRPC server listening on %s", serverConfig.GRPCPort)

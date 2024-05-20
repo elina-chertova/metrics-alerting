@@ -44,7 +44,10 @@ func run() error {
 
 	router.Use(logger.RequestLogger())
 	router.Use(compression.GzipHandle())
-	router.Use(subnet.TrustedIPMiddleware(serverConfig.TrustedSubnet))
+
+	if serverConfig.TrustedSubnet != "" {
+		router.Use(subnet.TrustedIPMiddleware(serverConfig.TrustedSubnet))
+	}
 
 	h := buildStorage(serverConfig, router)
 
@@ -85,7 +88,7 @@ func run() error {
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 		<-quit
 
-		fmt.Println("Shutting down server...")
+		log.Println("Shutting down server...")
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -94,7 +97,7 @@ func run() error {
 			log.Fatal("Server forced to shutdown:", err)
 		}
 
-		fmt.Println("Server exiting")
+		log.Println("Server exiting")
 	}()
 
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

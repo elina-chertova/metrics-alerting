@@ -30,19 +30,19 @@ func (s *Server) UpdateBatchMetrics(
 	ctx context.Context,
 	req *pb.UpdateBatchMetricsRequest,
 ) (*pb.UpdateBatchMetricsResponse, error) {
-	var metrics []f.Metric
+	metrics := make([]f.Metric, 0, len(req.Metrics))
 
 	for _, m := range req.Metrics {
 		var metric f.Metric
 
 		switch m.Type {
-		case config.Gauge:
+		case pb.MetricType_GAUGE:
 			metric = f.Metric{
 				ID:    m.Id,
 				MType: config.Gauge,
 				Value: &m.Value,
 			}
-		case config.Counter:
+		case pb.MetricType_COUNTER:
 			metric = f.Metric{
 				ID:    m.Id,
 				MType: config.Counter,

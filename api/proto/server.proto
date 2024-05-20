@@ -9,13 +9,18 @@ service MetricsService {
   rpc UpdateBatchMetrics(UpdateBatchMetricsRequest) returns (UpdateBatchMetricsResponse);
 }
 
+enum MetricType {
+  UNKNOWN = 0;
+  COUNTER = 1;
+  GAUGE = 2;
+}
+
 message Metric {
   string id = 1;
-  string type = 2;
+  MetricType type = 2;
   int64 delta = 3;
   double value = 4;
 }
-
 
 message UpdateBatchMetricsRequest {
   repeated Metric metrics = 1;

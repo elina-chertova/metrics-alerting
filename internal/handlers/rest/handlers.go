@@ -1,4 +1,4 @@
-// Package handlers provides HTTP handlers for various endpoints
+// Package rest Package handlers provides HTTP handlers for various endpoints
 // in a metrics alerting application.
 package rest
 
@@ -28,16 +28,6 @@ var (
 	ErrFailedJSONCreating = errors.New("failed JSON creation")
 	ErrReadReqBody        = errors.New("error reading request body")
 )
-
-//// metricsStorage defines an interface for storing and retrieving metric data.
-//type metricsStorage interface {
-//	UpdateCounter(name string, value int64, ok bool) error
-//	UpdateGauge(name string, value float64) error
-//	GetCounter(name string) (int64, bool, error)
-//	GetGauge(name string) (float64, bool, error)
-//	GetMetrics() (map[string]int64, map[string]float64)
-//	InsertBatchMetrics([]f.Metric) error
-//}
 
 // database defines an interface for interacting with a database.
 type database interface {

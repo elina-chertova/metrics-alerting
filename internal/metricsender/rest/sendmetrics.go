@@ -27,6 +27,7 @@ type SenderRest struct {
 
 func (rest *SenderRest) SendMetrics(storage *filememory.MemStorage) error {
 	ip := getIP()
+
 	err := r.MetricsToServer(
 		storage,
 		rest.Settings.FlagContentType,
@@ -39,6 +40,7 @@ func (rest *SenderRest) SendMetrics(storage *filememory.MemStorage) error {
 	)
 	if err != nil {
 		logger.Log.Error(err.Error(), zap.String("method", "MetricsToServer"))
+		return err
 	}
 	logger.Log.Info(
 		"Metrics sent", zap.String("method", "MetricsToServer"),

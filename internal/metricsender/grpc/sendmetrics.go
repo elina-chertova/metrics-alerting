@@ -20,7 +20,7 @@ func (s *SenderGRPC) SendMetrics(storage *filememory.MemStorage) error {
 	for metricName, metricValue := range storage.Gauge {
 		metric := &pb.Metric{
 			Id:    metricName,
-			Type:  config.Gauge,
+			Type:  pb.MetricType_GAUGE,
 			Value: metricValue,
 		}
 		metrics = append(metrics, metric)
@@ -29,13 +29,13 @@ func (s *SenderGRPC) SendMetrics(storage *filememory.MemStorage) error {
 	for metricName, metricValue := range storage.Counter {
 		metric := &pb.Metric{
 			Id:    metricName,
-			Type:  config.Counter,
+			Type:  pb.MetricType_COUNTER,
 			Delta: metricValue,
 		}
 		metrics = append(metrics, metric)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	_, err := s.Client.UpdateBatchMetrics(ctx, &pb.UpdateBatchMetricsRequest{Metrics: metrics})
