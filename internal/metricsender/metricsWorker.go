@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
-	r "github.com/elina-chertova/metrics-alerting.git/internal/request"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"go.uber.org/zap"
 	"sync"
@@ -17,9 +16,16 @@ type Worker struct {
 	once     sync.Once
 }
 
+type MetricsSender interface {
+	SendMetrics(
+		s *filememory.MemStorage,
+	) error
+}
+
 func SendMetricsWorker(
 	storage *filememory.MemStorage,
 	worker *Worker,
+	sender MetricsSender,
 	stopChan <-chan struct{},
 	wg *sync.WaitGroup,
 ) {
@@ -52,25 +58,13 @@ func SendMetricsWorker(
 
 			time.Sleep(time.Duration(worker.Config.ReportInterval) * time.Second)
 
-			err := r.MetricsToServer(
+			err := sender.SendMetrics(
 				storage,
-				worker.Settings.FlagContentType,
-				worker.Settings.URL,
-				worker.Settings.IsCompress,
-				worker.Settings.IsSendBatch,
-				worker.Config.SecretKey,
-				worker.Config.CryptoKey,
 			)
+
 			if err != nil {
 				logger.Log.Error(err.Error(), zap.String("method", "MetricsToServer"))
 			}
-			logger.Log.Info(
-				"Metrics sent", zap.String("method", "MetricsToServer"),
-				zap.String("URL", worker.Settings.URL),
-				zap.String("ContentType", worker.Settings.FlagContentType),
-				zap.Bool("Compressed", worker.Settings.IsCompress),
-				zap.Bool("Batch", worker.Settings.IsSendBatch),
-			)
 		}
 	}()
 }

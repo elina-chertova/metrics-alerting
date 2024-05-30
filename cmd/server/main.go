@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
-	"github.com/elina-chertova/metrics-alerting.git/internal/handlers"
+	"github.com/elina-chertova/metrics-alerting.git/internal/handlers/rest"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/compression"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/security"
+	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/subnet"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/db"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 	"github.com/gin-gonic/gin"
@@ -43,6 +44,10 @@ func run() error {
 
 	router.Use(logger.RequestLogger())
 	router.Use(compression.GzipHandle())
+
+	if serverConfig.TrustedSubnet != "" {
+		router.Use(subnet.TrustedIPMiddleware(serverConfig.TrustedSubnet))
+	}
 
 	h := buildStorage(serverConfig, router)
 
@@ -83,7 +88,7 @@ func run() error {
 		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 		<-quit
 
-		fmt.Println("Shutting down server...")
+		log.Println("Shutting down server...")
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -92,7 +97,7 @@ func run() error {
 			log.Fatal("Server forced to shutdown:", err)
 		}
 
-		fmt.Println("Server exiting")
+		log.Println("Server exiting")
 	}()
 
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -102,16 +107,16 @@ func run() error {
 	return nil
 }
 
-func buildStorage(config *config.Server, router *gin.Engine) *handlers.Handler {
+func buildStorage(config *config.Server, router *gin.Engine) *rest.Handler {
 	if config.DatabaseDSN != "" {
 		connection := db.Connect(config.DatabaseDSN)
-		database := handlers.NewHandlerDB(connection)
+		database := rest.NewHandlerDB(connection)
 		router.GET("/ping", database.PingDB())
-		return handlers.NewHandler(connection)
+		return rest.NewHandler(connection)
 
 	} else {
 		s := filememory.NewMemStorage(true, config)
-		return handlers.NewHandler(s)
+		return rest.NewHandler(s)
 	}
 }
 

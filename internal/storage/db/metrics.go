@@ -204,11 +204,20 @@ func typeCondition(param formatter.Metric) func(*gorm.DB) *gorm.DB {
 // - An error if the batch insert or update operation fails.
 func (db DB) InsertBatchMetrics(metrics []formatter.Metric) error {
 	tx := db.Database.Begin()
-	defer tx.Rollback()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+	}()
 
 	for _, param := range metrics {
 		var m Metrics
 		result := tx.Scopes(typeCondition(param)).Where("name = ?", param.ID).Order("").First(&m)
+		if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			logger.Log.Error(fmt.Sprintf("error finding metric: %v", result.Error))
+			return result.Error
+		}
 
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			var data *gorm.DB
@@ -241,9 +250,11 @@ func (db DB) InsertBatchMetrics(metrics []formatter.Metric) error {
 			case config.Gauge:
 				m.Value = *param.Value
 			}
+
 			result = tx.Save(&m)
 			if result.Error != nil {
 				logger.Log.Error(fmt.Sprintf("%s: %v", ErrSaveMetric, result.Error))
+				return result.Error
 			}
 		}
 	}

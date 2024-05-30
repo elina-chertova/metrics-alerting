@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	pb "github.com/elina-chertova/metrics-alerting.git/api/proto"
 	"github.com/elina-chertova/metrics-alerting.git/internal/asymencrypt"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"os"
 	"os/signal"
@@ -14,6 +17,8 @@ import (
 	"github.com/elina-chertova/metrics-alerting.git/internal/config"
 	st "github.com/elina-chertova/metrics-alerting.git/internal/metricextractor"
 	sender "github.com/elina-chertova/metrics-alerting.git/internal/metricsender"
+	senderGRPC "github.com/elina-chertova/metrics-alerting.git/internal/metricsender/grpc"
+	senderRest "github.com/elina-chertova/metrics-alerting.git/internal/metricsender/rest"
 	"github.com/elina-chertova/metrics-alerting.git/internal/middleware/logger"
 	"github.com/elina-chertova/metrics-alerting.git/internal/storage/filememory"
 )
@@ -41,7 +46,24 @@ func main() {
 	logger.LogInit("info")
 	storage := filememory.NewMemStorage(false, nil)
 
-	startWorkers(storage, w, stopCh, &wg)
+	var metricsSender sender.MetricsSender
+	if w.Config.UseGRPC {
+		conn, err := grpc.NewClient(
+			w.Config.GRPCAddress,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
+		if err != nil {
+			log.Fatalf("did not connect: %v", err)
+		}
+		defer conn.Close()
+		client := pb.NewMetricsServiceClient(conn)
+		metricsSender = &senderGRPC.SenderGRPC{Client: client, Config: w.Config}
+
+	} else {
+		metricsSender = &senderRest.SenderRest{Settings: w.Settings, Config: w.Config}
+	}
+
+	startWorkers(storage, w, metricsSender, stopCh, &wg)
 
 	waitForSignals(stopCh)
 
@@ -51,6 +73,7 @@ func main() {
 func startWorkers(
 	storage *filememory.MemStorage,
 	w *sender.Worker,
+	metricsSender sender.MetricsSender,
 	stopCh <-chan struct{},
 	wg *sync.WaitGroup,
 ) {
@@ -60,7 +83,7 @@ func startWorkers(
 	wg.Add(numSendWorkers + 2*numExtractWorkers)
 
 	for sw := 0; sw < numSendWorkers; sw++ {
-		go sender.SendMetricsWorker(storage, w, stopCh, wg)
+		go sender.SendMetricsWorker(storage, w, metricsSender, stopCh, wg)
 	}
 	for ew := 0; ew < numExtractWorkers; ew++ {
 		go st.ExtractMetricsWorker(storage, w, stopCh, wg)
